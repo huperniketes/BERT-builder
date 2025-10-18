@@ -1,50 +1,47 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# C-Bert Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Library-First
+Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. CLI Interface
+Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Test-First (NON-NEGOTIABLE)
+TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Code Quality
+Code must be clear, maintainable, and efficient. All contributions will be measured against these standards through code reviews and static analysis. Rationale: High-quality code reduces bugs, lowers maintenance costs, and accelerates future development.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Testing Standards
+Comprehensive and automated testing is mandatory. This includes unit, integration, and end-to-end tests to ensure functionality and reliability. Rationale: Rigorous testing is the foundation of a stable and trustworthy system.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### VI. User Experience Consistency
+A cohesive and predictable user interface and interaction model must be maintained across the entire project. Rationale: Consistency improves usability and reduces the learning curve for new users.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### VII. Performance Requirements
+The system must meet defined and measurable performance benchmarks. Performance testing is required for any change that may impact speed or resource consumption. Rationale: A high-performance system is critical for user satisfaction and scalability.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### VIII. Observability
+### IX. Versioning & Breaking Changes
+
+### X. Simplicity
+Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles
+
+## Additional Constraints, Security Requirements, Performance Standards, etc.
+CMake is used to create the build system for contributors and users to install and use locally.
+compliance standards, deployment policies, etc.
+
+## Development Workflow, Review Process, Quality Gates, etc.
+Code review requirements, testing gates, deployment approval process, etc.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+This Constitution supersedes all other practices. Amendments require documentation, approval, and a migration plan.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### Governance Rules
+All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE](TBD) for runtime development guidance
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0 | **Ratified**: 2025-10-12
