@@ -49,7 +49,7 @@ def clone_repo(repo, output_dir):
 
     print(f"Cloning {repo_name} from {clone_url}...")
     try:
-        subprocess.run(["git", "clone", clone_url, repo_path], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "clone", "--depth", "1", clone_url, repo_path], check=True, capture_output=True, text=True)
         print(f"Successfully cloned {repo_name}.")
     except subprocess.CalledProcessError as e:
         print(f"Error cloning {repo_name}: {e.stderr}")
