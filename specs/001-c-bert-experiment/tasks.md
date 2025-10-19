@@ -46,7 +46,7 @@ graph TD
 - [ ] T009 [US1] Implement the core training loop, including checkpointing and automatic resumption logic, in `src/cbert/trainer.py`.
 - [ ] T010 [US1] Implement metric logging (Loss, Accuracy) within the trainer in `src/cbert/trainer.py`.
 - [ ] T011 [US1] Implement the CLI for training in `src/cli/train.py`, ensuring it parses all arguments defined in `contracts/cli.md`.
-- [ ] T012 [US1] Write an integration test in `tests/integration/test_training.py` that runs a single training step on a small dummy dataset.
+- [x] T012 [US1] Write an integration test in `tests/integration/test_training.py` that runs a single training step on a small dummy dataset.
 
 ## Phase 4: User Story 2 - Evaluating the Model
 

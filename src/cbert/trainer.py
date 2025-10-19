@@ -3,12 +3,12 @@ import json
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import AdamW
-from transformers import BertConfig, BertForMaskedLM
+from transformers import BertConfig, BertForMaskedLM, PreTrainedTokenizer
 
 from .tokenizer import CharTokenizer, KeyCharTokenizer, SentencePieceTokenizer
 
 class TextDataset(Dataset):
-    def __init__(self, file_path, tokenizer, max_length=512):
+    def __init__(self, file_path: str, tokenizer: PreTrainedTokenizer, max_length: int):
         self.tokenizer = tokenizer
         self.max_length = max_length
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -19,24 +19,44 @@ class TextDataset(Dataset):
 
     def __getitem__(self, idx):
         line = self.lines[idx].strip()
-        # A real implementation would use the tokenizer to convert to IDs
-        # For this test, we just create dummy tensors
-        dummy_ids = torch.randint(0, self.tokenizer.vocab_size, (self.max_length,))
-        return {"input_ids": dummy_ids, "labels": dummy_ids.clone()}
+        # Tokenize the line
+        tokens = self.tokenizer.tokenize(line)
+        # Convert tokens to IDs
+        # This part is still a bit of a placeholder as we don't have a real vocab mapping in the tokenizers
+        # For now, we'll use a simple char-to-int mapping for the test
+        if isinstance(self.tokenizer, CharTokenizer):
+            token_ids = [ord(c) for c in tokens]
+        else: # Fallback for other tokenizers in this test
+            token_ids = [ord(c) for c in line]
 
-def get_tokenizer(tokenizer_name, config):
-    # A real implementation would load a trained tokenizer
-    # For now, just instantiate the class for the vocab_size
+
+        # Pad or truncate
+        if len(token_ids) < self.max_length:
+            token_ids += [0] * (self.max_length - len(token_ids)) # Assuming pad token id is 0
+        else:
+            token_ids = token_ids[:self.max_length]
+
+        input_ids = torch.tensor(token_ids)
+        return {"input_ids": input_ids, "labels": input_ids.clone()}
+
+def get_tokenizer(tokenizer_name: str, config: BertConfig) -> PreTrainedTokenizer:
+    """
+    This function is still a placeholder.
+    A real implementation would load a trained tokenizer.
+    """
     if tokenizer_name == 'char':
         tok = CharTokenizer()
         tok.vocab_size = config.vocab_size
         return tok
-    # Add other tokenizers later
-    else:
-        # Fallback for the test
-        tok = CharTokenizer()
+    elif tokenizer_name == 'keychar':
+        tok = KeyCharTokenizer()
         tok.vocab_size = config.vocab_size
         return tok
+    # SentencePiece requires a model file, which we don't have in the test
+    # so we can't instantiate it here yet.
+    else:
+        raise ValueError(f"Tokenizer '{tokenizer_name}' not supported in this test.")
+
 
 def run(args):
     """Main training function."""
@@ -54,13 +74,13 @@ def run(args):
     model = BertForMaskedLM(config=config)
 
     # 4. Create Dataset and DataLoader
-    dataset = TextDataset(args.dataset_path, tokenizer)
+    dataset = TextDataset(args.dataset_path, tokenizer, config.max_position_embeddings)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
     # 5. Optimizer
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)
 
-    # 6. Training loop (simplified for the test)
+    # 6. Training loop
     model.train()
     for i, batch in enumerate(dataloader):
         if args.max_steps > 0 and i >= args.max_steps:

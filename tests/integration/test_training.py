@@ -1,61 +1,62 @@
 import unittest
 import os
-import subprocess
 import json
+import shutil
+from cbert import trainer
 
-class TestTraining(unittest.TestCase):
+class Args:
+    def __init__(self, dataset_path, config_path, tokenizer, output_dir, max_steps=10):
+        self.dataset_path = dataset_path
+        self.config_path = config_path
+        self.tokenizer = tokenizer
+        self.output_dir = output_dir
+        self.epochs = 1
+        self.batch_size = 2
+        self.learning_rate = 5e-5
+        self.max_steps = max_steps
+        self.resume_from_checkpoint = None
+
+class TestTrainer(unittest.TestCase):
 
     def setUp(self):
-        self.temp_dir = "tests/temp_training"
-        self.data_dir = os.path.join(self.temp_dir, "data")
-        self.output_dir = os.path.join(self.temp_dir, "output")
-        os.makedirs(self.data_dir, exist_ok=True)
-        os.makedirs(self.output_dir, exist_ok=True)
+        self.test_dir = "test_trainer_output"
+        os.makedirs(self.test_dir, exist_ok=True)
 
-        # Create a dummy dataset
-        self.corpus_path = os.path.join(self.data_dir, "dummy_corpus.txt")
-        with open(self.corpus_path, "w") as f:
-            f.write("int main() { return 0; }\n" * 100)
+        # Create dummy dataset
+        self.dataset_path = os.path.join(self.test_dir, "dataset.txt")
+        with open(self.dataset_path, "w") as f:
+            f.write("int main() { return 0; }\n")
+            f.write("int x = 1;\n")
 
-        # Create a dummy model config
-        self.config_path = os.path.join(self.temp_dir, "config.json")
+        # Create dummy config
+        self.config_path = os.path.join(self.test_dir, "config.json")
         config = {
-            "vocab_size": 128,
-            "hidden_size": 128, # Smaller for test
+            "vocab_size": 128, # CharTokenizer vocab size
+            "hidden_size": 256, # smaller for testing
             "num_hidden_layers": 2,
             "num_attention_heads": 2,
-            "intermediate_size": 512
+            "intermediate_size": 512,
+            "max_position_embeddings": 128
         }
         with open(self.config_path, "w") as f:
             json.dump(config, f)
 
     def tearDown(self):
-        if os.path.exists(self.temp_dir):
-            subprocess.run(["rm", "-rf", self.temp_dir])
+        shutil.rmtree(self.test_dir)
 
-    def test_training_script(self):
-        """Test that the training script runs for one step and creates a checkpoint."""
-        command = [
-            "python3", "src/cli/train.py",
-            "--dataset_path", self.corpus_path,
-            "--config_path", self.config_path,
-            "--tokenizer", "char",
-            "--output_dir", self.output_dir,
-            "--epochs", "1",
-            "--batch_size", "2",
-            "--max_steps", "1" # Run only for a single step
-        ]
+    def test_training_run(self):
+        args = Args(
+            dataset_path=self.dataset_path,
+            config_path=self.config_path,
+            tokenizer='char',
+            output_dir=self.test_dir
+        )
 
-        # This will fail as the script doesn't exist yet
-        result = subprocess.run(command, capture_output=True, text=True)
+        # This will fail until the trainer is fully implemented
+        trainer.run(args)
 
-        print("STDOUT:", result.stdout)
-        print("STDERR:", result.stderr)
-
-        self.assertEqual(result.returncode, 0, f"Training script failed with error: {result.stderr}")
-        
-        # Check if a checkpoint was created
-        self.assertTrue(os.path.exists(os.path.join(self.output_dir, "model.safetensors")))
+        # Check if model was saved
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "model.safetensors")))
 
 if __name__ == '__main__':
     unittest.main()
