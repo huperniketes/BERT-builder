@@ -35,7 +35,7 @@ graph TD
 - [x] T004 [P] Implement the `Char` and `KeyChar` tokenizers in `src/cbert/tokenizer.py`.
 - [x] T005 [P] Implement the `SentencePiece` tokenizer training and loading logic in `src/cbert/tokenizer.py`.
 - [x] T006 Implement the data pre-processing pipeline in `src/cbert/data.py` to iterate through the raw corpus and apply comment removal.
-- [ ] T007 Define the BERT-base model architecture in `src/cbert/model.py` using the Hugging Face `transformers` library.
+- [x] T007 Define the BERT-base model architecture in `src/cbert/model.py` using the Hugging Face `transformers` library.
 - [x] T008 [P] Write unit tests for all three tokenizers in `tests/unit/test_tokenizer.py`.
 
 ## Phase 3: User Story 1 - Training the Model
