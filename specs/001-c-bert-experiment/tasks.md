@@ -25,8 +25,8 @@ graph TD
 *Goal: Initialize the project structure and install dependencies.*
 
 - [x] T001 Create the source code directory structure outlined in `plan.md` (e.g., `src/cbert`, `src/cli`, `scripts`, `tests`).
-- [ ] T002 Create the `requirements.txt` file with primary dependencies: `torch`, `transformers`, `sentencepiece`, `clang`.
-- [ ] T003 Implement the corpus download script in `scripts/download_corpus.py` to clone the top-100 starred C-language repositories from GitHub.
+- [x] T002 Create the `requirements.txt` file with primary dependencies: `torch`, `transformers`, `sentencepiece`, `clang`.
+- [x] T003 Implement the corpus download script in `scripts/download_corpus.py` to clone the top-100 starred C-language repositories from GitHub.
 
 ## Phase 2: Foundational Components
 
