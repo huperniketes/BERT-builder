@@ -76,7 +76,7 @@ def run(args):
     os.makedirs(args.output_dir, exist_ok=True)
 
     # 1. Load Config
-    with open(args.config_path, 'r') as f:
+    with open(args.config, 'r') as f:
         config_dict = json.load(f)
     config = BertConfig(**config_dict)
 
@@ -87,7 +87,7 @@ def run(args):
     model = BertForMaskedLM(config=config)
 
     # 4. Create Dataset and DataLoader
-    dataset = TextDataset(args.dataset_path, tokenizer, config.max_position_embeddings)
+    dataset = TextDataset(args.dataset_dir, tokenizer, config.max_position_embeddings)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
     # 5. Optimizer
@@ -107,7 +107,7 @@ def run(args):
     global_step = start_step
     for epoch in range(args.epochs):
         for batch in dataloader:
-            if args.max_steps > 0 and global_step >= args.max_steps:
+            if hasattr(args, 'max_steps') and args.max_steps > 0 and global_step >= args.max_steps:
                 break
 
             optimizer.zero_grad()
@@ -150,7 +150,7 @@ def run(args):
 
             global_step += 1
         
-        if args.max_steps > 0 and global_step >= args.max_steps:
+        if hasattr(args, 'max_steps') and args.max_steps > 0 and global_step >= args.max_steps:
             break
 
 

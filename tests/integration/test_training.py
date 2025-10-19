@@ -5,16 +5,17 @@ import shutil
 from cbert import trainer
 
 class Args:
-    def __init__(self, dataset_path, config_path, tokenizer, output_dir, max_steps=10, resume_from_checkpoint=None):
-        self.dataset_path = dataset_path
-        self.config_path = config_path
+    def __init__(self, dataset_dir, config, tokenizer, output_dir, max_steps=10, resume_from_checkpoint=None, batch_size=2, learning_rate=2e-5):
+        self.dataset_dir = dataset_dir
+        self.config = config
         self.tokenizer = tokenizer
         self.output_dir = output_dir
         self.epochs = 1
-        self.batch_size = 2
-        self.learning_rate = 5e-5
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
         self.max_steps = max_steps
         self.resume_from_checkpoint = resume_from_checkpoint
+        self.masking = 'mlm'
 
 class TestTrainer(unittest.TestCase):
 
@@ -47,8 +48,8 @@ class TestTrainer(unittest.TestCase):
     def test_training_and_resumption(self):
         # First run
         args1 = Args(
-            dataset_path=self.dataset_path,
-            config_path=self.config_path,
+            dataset_dir=self.dataset_path,
+            config=self.config_path,
             tokenizer='char',
             output_dir=self.test_dir,
             max_steps=6
@@ -72,8 +73,8 @@ class TestTrainer(unittest.TestCase):
 
         # Second run (resuming)
         args2 = Args(
-            dataset_path=self.dataset_path,
-            config_path=self.config_path,
+            dataset_dir=self.dataset_path,
+            config=self.config_path,
             tokenizer='char',
             output_dir=self.test_dir,
             max_steps=10,
