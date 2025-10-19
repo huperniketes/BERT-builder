@@ -24,29 +24,29 @@ graph TD
 
 *Goal: Initialize the project structure and install dependencies.*
 
-- [x] T001 Create the source code directory structure outlined in `plan.md` (e.g., `src/cbert`, `src/cli`, `scripts`, `tests`).
-- [x] T002 Create the `requirements.txt` file with primary dependencies: `torch`, `transformers`, `sentencepiece`, `clang`.
-- [x] T003 Implement the corpus download script in `scripts/download_corpus.py` to clone the top-100 starred C-language repositories from GitHub.
+- [ ] T001 Create the source code directory structure outlined in `plan.md` (e.g., `src/cbert`, `src/cli`, `scripts`, `tests`).
+- [ ] T002 Create the `requirements.txt` file with primary dependencies: `torch`, `transformers`, `sentencepiece`, `clang`.
+- [ ] T003 Implement the corpus download script in `scripts/download_corpus.py` to clone the top-100 starred C-language repositories from GitHub.
 
 ## Phase 2: Foundational Components
 
 *Goal: Build the core, shared components required for all user stories.*
 
-- [x] T004 [P] Implement the `Char` and `KeyChar` tokenizers in `src/cbert/tokenizer.py`.
-- [x] T005 [P] Implement the `SentencePiece` tokenizer training and loading logic in `src/cbert/tokenizer.py`.
-- [x] T006 Implement the data pre-processing pipeline in `src/cbert/data.py` to iterate through the raw corpus and apply comment removal.
-- [x] T007 Define the BERT-base model architecture in `src/cbert/model.py` using the Hugging Face `transformers` library.
-- [x] T008 [P] Write unit tests for all three tokenizers in `tests/unit/test_tokenizer.py`.
+- [ ] T004 [P] Implement the `Char` and `KeyChar` tokenizers in `src/cbert/tokenizer.py`.
+- [ ] T005 [P] Implement the `SentencePiece` tokenizer training and loading logic in `src/cbert/tokenizer.py`.
+- [ ] T006 Implement the data pre-processing pipeline in `src/cbert/data.py` to iterate through the raw corpus and apply comment removal.
+- [ ] T007 Define the BERT-base model architecture in `src/cbert/model.py` using the Hugging Face `transformers` library.
+- [ ] T008 [P] Write unit tests for all three tokenizers in `tests/unit/test_tokenizer.py`.
 
 ## Phase 3: User Story 1 - Training the Model
 
 *Goal: A researcher can start a training process for the C-BERT model on a specified C code dataset.*
 *Independent Test: The `train.py` script successfully launches, logs training loss, and saves a model checkpoint to disk.*
 
-- [x] T009 [US1] Implement the core training loop, including checkpointing and automatic resumption logic, in `src/cbert/trainer.py`.
-- [x] T010 [US1] Implement metric logging (Loss, Accuracy) within the trainer in `src/cbert/trainer.py`.
-- [x] T011 [US1] Implement the CLI for training in `src/cli/train.py`, ensuring it parses all arguments defined in `contracts/cli.md`.
-- [x] T012 [US1] Write an integration test in `tests/integration/test_training.py` that runs a single training step on a small dummy dataset.
+- [ ] T009 [US1] Implement the core training loop, including checkpointing and automatic resumption logic, in `src/cbert/trainer.py`.
+- [ ] T010 [US1] Implement metric logging (Loss, Accuracy) within the trainer in `src/cbert/trainer.py`.
+- [ ] T011 [US1] Implement the CLI for training in `src/cli/train.py`, ensuring it parses all arguments defined in `contracts/cli.md`.
+- [ ] T012 [US1] Write an integration test in `tests/integration/test_training.py` that runs a single training step on a small dummy dataset.
 
 ## Phase 4: User Story 2 - Evaluating the Model
 
