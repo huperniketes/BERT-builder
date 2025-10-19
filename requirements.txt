@@ -4,3 +4,4 @@ sentencepiece
 clang
 requests
 numpy<2.0
+pytest
