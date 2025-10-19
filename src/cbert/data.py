@@ -5,10 +5,9 @@ import re
 def remove_comments(text):
     """Removes C-style comments from a string."""
     # Remove /* ... */ comments
-    text = re.sub(r'/*.**/', '', text, flags=re.DOTALL)
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)
     # Remove // ... comments
-    text = re.sub(r'//.*?
-', '\n', text)
+    text = re.sub(r'//.*', '', text)
     return text
 
 def process_file(file_path):
