@@ -54,7 +54,7 @@ graph TD
 *Independent Test: The `evaluate.py` script can load a trained model checkpoint and output evaluation metrics in the specified format.*
 
 - [ ] T013 [P] [US2] Implement the evaluation logic for the `ast` and `vi` tasks in `src/cli/evaluate.py`.
-- [ ] T014 [P] [US2] Write unit tests for the evaluation metric calculations in `tests/unit/test_evaluation.py`.
+- [x] T014 [P] Write unit tests for the evaluation metric calculations in `tests/unit/test_evaluation.py`.
 - [ ] T015 [US2] Write an integration test in `tests/integration/test_evaluation.py` that loads a dummy checkpoint and runs the evaluation script.
 
 ## Phase 5: User Story 3 - Using the Pre-trained Model

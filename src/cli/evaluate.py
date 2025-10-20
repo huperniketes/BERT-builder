@@ -1,5 +1,11 @@
+import torch
+
 def calculate_accuracy(logits, labels):
-    pass
+    predictions = torch.argmax(logits, dim=-1)
+    # Assuming labels are not padded or padding is handled elsewhere for accuracy calculation
+    correct_predictions = (predictions == labels).float()
+    accuracy = correct_predictions.mean()
+    return accuracy.item()
 
 def calculate_perplexity(loss):
-    pass
+    return torch.exp(loss).item()
