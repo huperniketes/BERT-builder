@@ -24,131 +24,29 @@ class TextDataset(Dataset):
         self.word_regex = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)')
 
         with open(file_path, 'r', encoding='utf-8') as f:
-            self.lines = f.readlines()
+            raw_lines = f.readlines()
 
-    def __len__(self):
-        return len(self.lines)
+        self.lines = []
+        for line in raw_lines:
+            stripped_line = line.strip()
+            if not stripped_line: # Skip empty lines
+                continue
+            
+            # Encode to check for meaningful content (non-special tokens)
+            # Use add_special_tokens=False to check for actual content tokens
+            encoded_content = self.tokenizer.encode(stripped_line, add_special_tokens=False, max_length=self.max_length, truncation=True)
+            if encoded_content: # If there are any actual content tokens
+                # Tokenization Sanity Check: Warn if too many UNK tokens
+                unk_token_id = self.tokenizer.unk_token_id
+                if unk_token_id is not None:
+                    unk_count = encoded_content.count(unk_token_id)
+                    unk_ratio = unk_count / len(encoded_content)
+                    if unk_ratio > 0.5: # Threshold for warning (e.g., more than 50% UNK tokens)
+                        logger.warning(f"High UNK token ratio ({unk_ratio:.2f}) in line: '{stripped_line[:100]}...'")
 
-    def __getitem__(self, idx):
-        line = self.lines[idx].strip()
-        
-        # Tokenize the line
-        token_ids = self.tokenizer.encode(line, add_special_tokens=True, max_length=self.max_length, padding='max_length', truncation=True)
-        
-        input_ids = torch.tensor(token_ids)
-        labels = input_ids.clone()
+                self.lines.append(stripped_line)
 
-        if self.masking_strategy == 'mlm':
-            input_ids, labels = self.mask_tokens_mlm(input_ids)
-        elif self.masking_strategy == 'wwm':
-            input_ids, labels = self.mask_tokens_wwm(input_ids, line)
-        else:
-            raise ValueError(f"Unknown masking strategy: {self.masking_strategy}")
-
-        return {"input_ids": input_ids, "labels": labels}
-
-    def mask_tokens_mlm(self, inputs: torch.Tensor, mlm_probability=0.15):
-        """Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original."""
-        labels = inputs.clone()
-        # We sample a few tokens in each sequence for MLM training
-        probability_matrix = torch.full(labels.shape, mlm_probability)
-        special_tokens_mask = [
-            self.tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in labels.tolist()
-        ]
-        probability_matrix.masked_fill_(torch.tensor(special_tokens_mask, dtype=torch.bool), value=0.0)
-        
-        masked_indices = torch.bernoulli(probability_matrix).bool()
-        labels[~masked_indices] = -100  # We only compute loss on masked tokens
-
-        # 80% of the time, we replace masked input tokens with tokenizer.mask_token id
-        indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.8)).bool() & masked_indices
-        inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(self.tokenizer.mask_token)
-
-        # 10% of the time, we replace masked input tokens with random word
-        indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
-        random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
-        inputs[indices_random] = random_words[indices_random]
-
-        # The rest of the time (10% of the time) we keep the masked input tokens unchanged
-        return inputs, labels
-
-    def mask_tokens_wwm(self, inputs: torch.Tensor, text: str, mlm_probability=0.15):
-        """Prepare masked tokens inputs/labels for whole word masking."""
-        labels = inputs.clone()
-        
-        words = self.word_regex.findall(text)
-        if not words:
-            return self.mask_tokens_mlm(inputs, mlm_probability) # Fallback to MLM if no words are found
-
-        masked_words = []
-        for word in words:
-            if random.random() < mlm_probability:
-                masked_words.append(word)
-        
-        if not masked_words:
-            return inputs, labels # Nothing to mask
-
-        # Create a regex to find all occurrences of the chosen words
-        mask_regex = re.compile(r'\b(' + '|'.join(re.escape(w) for w in masked_words) + r')\b')
-        
-        # This is a simplified approach. A more robust implementation would work with token-level spans.
-        # Here, we'll just mask all occurrences of the word in the line.
-        
-        # Find all token indices that correspond to the words to be masked
-        masked_indices = torch.zeros_like(inputs).bool()
-        for match in mask_regex.finditer(text):
-            start, end = match.span()
-            # This is a simplification: it doesn't perfectly align with the tokenizer.
-            # A more rigorous approach would map character spans to token spans.
-            for i in range(start, end):
-                # This is not quite right, but it's a starting point.
-                # We need a way to map character position to token position.
-                # For now, we'll just mask the tokens that are not special tokens.
-                if inputs[i] not in self.tokenizer.all_special_ids:
-                     masked_indices[i] = True
-
-
-        labels[~masked_indices] = -100
-
-        # 80% of the time, we replace masked input tokens with tokenizer.mask_token id
-        indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.8)).bool() & masked_indices
-        inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(self.tokenizer.mask_token)
-
-        # 10% of the time, we replace masked input tokens with random word
-        indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
-        random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
-        inputs[indices_random] = random_words[indices_random]
-
-        return inputs, labels
-
-
-import os
-import json
-import torch
-import logging
-import random
-import re
-from torch.utils.data import Dataset, DataLoader
-from torch.optim import AdamW
-from transformers import BertConfig, BertForMaskedLM, PreTrainedTokenizer
-
-from .tokenizer import CharTokenizer, KeyCharTokenizer, SentencePieceTokenizer
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-class TextDataset(Dataset):
-    def __init__(self, file_path: str, tokenizer: PreTrainedTokenizer, max_length: int, masking_strategy: str = 'mlm'):
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.masking_strategy = masking_strategy
-        
-        # For WWM, we need to identify whole words. This is a simple regex for C-like identifiers.
-        self.word_regex = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)')
-
-        with open(file_path, 'r', encoding='utf-8') as f:
-            self.lines = f.readlines()
+        logger.info(f"Loaded {len(self.lines)} meaningful lines from {file_path}")
 
     def __len__(self):
         return len(self.lines)

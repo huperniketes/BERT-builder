@@ -13,8 +13,18 @@ def remove_comments(text):
 def process_file(file_path):
     """Reads a file, removes comments, and returns the cleaned text."""
     try:
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-            return remove_comments(f.read())
+        with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+            content = f.read()
+            # Explicitly remove null bytes, as they can cause issues with text processing
+            content = content.replace('\x00', '')
+            cleaned_text = remove_comments(content)
+
+            # Character Range Check: Log warning for non-ASCII characters
+            non_ascii_chars = [char for char in cleaned_text if ord(char) > 127]
+            if non_ascii_chars:
+                print(f"Warning: Non-ASCII characters found in {file_path}. Examples: {set(non_ascii_chars)}")
+
+            return cleaned_text
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
         return ""
@@ -38,8 +48,9 @@ def main():
                     file_path = os.path.join(root, file)
                     print(f"Processing {file_path}...")
                     cleaned_text = process_file(file_path)
-                    outfile.write(cleaned_text)
-                    outfile.write('\n') # Add a newline between files
+                    if cleaned_text.strip(): # Only write if there's actual content
+                        outfile.write(cleaned_text)
+                        outfile.write('\n') # Add a newline between files
 
     print(f"\nPre-processing complete. Cleaned corpus saved to {args.output_file}")
 
