@@ -9,7 +9,7 @@ from cbert import trainer
 from cbert.tokenizer import CharTokenizer, KeyCharTokenizer, SentencePieceTokenizer
 from transformers import BertConfig
 
-# Helper class for trainer args
+# Helper class for trainer args (re-using from test_training.py)
 class TrainerArgs:
     def __init__(self, dataset_dir, config, tokenizer_name, output_dir, masking='mlm', max_steps=5, batch_size=2, learning_rate=2e-5, vocab_file=None, spm_model_file=None):
         self.dataset_dir = dataset_dir
@@ -74,7 +74,7 @@ class TestEvaluationIntegration(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def _run_evaluation_test(self, tokenizer_type, expected_task, vocab_file=None, spm_model_file=None):
-        output_file = os.path.join(self.test_dir, f"eval_results_{tokenizer_type}.json")
+        output_file = os.path.join(self.test_dir, f"eval_results_{tokenizer_type}_{expected_task}.json")
         
         command = [
             "python3", "src/cli/evaluate.py",
@@ -113,17 +113,28 @@ class TestEvaluationIntegration(unittest.TestCase):
         self.assertGreater(results["average_loss"], 0.0)
         self.assertGreaterEqual(results["average_accuracy"], 0.0)
         self.assertLessEqual(results["average_accuracy"], 1.0)
-        self.assertGreater(results["average_perplexity"], 0.0)
+        
+        # Perplexity is only meaningful for MLM task
+        if expected_task == 'mlm':
+            self.assertGreater(results["average_perplexity"], 0.0)
+        else:
+            self.assertEqual(results["average_perplexity"], 0.0) # Placeholder value
 
-    def test_evaluate_char_tokenizer(self):
+    def test_evaluate_char_tokenizer_mlm(self):
         self._run_evaluation_test(tokenizer_type='char', expected_task='mlm')
 
-    def test_evaluate_keychar_tokenizer(self):
+    def test_evaluate_keychar_tokenizer_mlm(self):
         self._run_evaluation_test(tokenizer_type='keychar', expected_task='mlm')
 
-    def test_evaluate_spe_tokenizer(self):
+    def test_evaluate_spe_tokenizer_mlm(self):
         self._run_evaluation_test(tokenizer_type='spe', expected_task='mlm',
                                 vocab_file=self.spm_vocab_file, spm_model_file=self.spm_model_file)
+
+    def test_evaluate_char_tokenizer_ast_placeholder(self):
+        self._run_evaluation_test(tokenizer_type='char', expected_task='ast')
+
+    def test_evaluate_char_tokenizer_vi_placeholder(self):
+        self._run_evaluation_test(tokenizer_type='char', expected_task='vi')
 
 if __name__ == '__main__':
     unittest.main()
