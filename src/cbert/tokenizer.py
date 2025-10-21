@@ -1,13 +1,70 @@
-import sentencepiece as spm
 import os
+import json
+import collections
+import sentencepiece as spm
+from transformers import PreTrainedTokenizer
 
-class CharTokenizer:
-    """Tokenizes a string into a list of characters."""
-    def tokenize(self, text):
+VOCAB_FILES_NAMES = {"vocab_file": "vocab.json"}
+
+class CharTokenizer(PreTrainedTokenizer):
+    vocab_files_names = VOCAB_FILES_NAMES
+    model_input_names = ["input_ids", "attention_mask"]
+
+    def __init__(self, vocab_file=None, unk_token="[UNK]", sep_token="[SEP]", pad_token="[PAD]", cls_token="[CLS]", mask_token="[MASK]", **kwargs):
+        super().__init__(unk_token=unk_token, sep_token=sep_token, pad_token=pad_token, cls_token=cls_token, mask_token=mask_token, **kwargs)
+
+        if vocab_file is not None:
+            self.vocab = self._load_vocab(vocab_file)
+        else:
+            # Default ASCII vocab + special tokens
+            self.vocab = self._build_default_vocab()
+        
+        self.ids_to_tokens = collections.OrderedDict([(ids, tok) for tok, ids in self.vocab.items()])
+
+    def _build_default_vocab(self):
+        vocab = collections.OrderedDict()
+        # Add special tokens first
+        for token in [self.unk_token, self.sep_token, self.pad_token, self.cls_token, self.mask_token]:
+            if token not in vocab:
+                vocab[token] = len(vocab)
+        # Add ASCII characters
+        for i in range(128):
+            char = chr(i)
+            if char not in vocab:
+                vocab[char] = len(vocab)
+        return vocab
+
+    def _load_vocab(self, vocab_file):
+        with open(vocab_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    @property
+    def vocab_size(self):
+        return len(self.vocab)
+
+    def get_vocab(self):
+        return dict(self.vocab)
+
+    def _tokenize(self, text):
         return list(text)
 
-class KeyCharTokenizer:
-    """Tokenizes a string, treating C keywords as single tokens."""
+    def _convert_token_to_id(self, token):
+        return self.vocab.get(token, self.vocab.get(self.unk_token))
+
+    def _convert_id_to_token(self, index):
+        return self.ids_to_tokens.get(index, self.unk_token)
+
+    def save_vocabulary(self, save_directory: str, filename_prefix: str = None) -> tuple:
+        if not os.path.isdir(save_directory):
+            logger.error(f"Vocabulary path ({save_directory}) should be a directory")
+            return
+        vocab_file = os.path.join(save_directory, (filename_prefix + "-" if filename_prefix else "") + VOCAB_FILES_NAMES["vocab_file"])
+        with open(vocab_file, "w", encoding="utf-8") as f:
+            json.dump(self.vocab, f, indent=2)
+        return (vocab_file,)
+
+
+class KeyCharTokenizer(CharTokenizer):
     C_KEYWORDS = {
         "auto", "break", "case", "char", "const", "continue", "default", "do",
         "double", "else", "enum", "extern", "float", "for", "goto", "if",
@@ -15,7 +72,15 @@ class KeyCharTokenizer:
         "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while"
     }
 
-    def tokenize(self, text):
+    def _build_default_vocab(self):
+        vocab = super()._build_default_vocab()
+        # Add C keywords after special tokens and ASCII chars
+        for keyword in sorted(list(self.C_KEYWORDS)): # Sort for consistent vocab order
+            if keyword not in vocab:
+                vocab[keyword] = len(vocab)
+        return vocab
+
+    def _tokenize(self, text):
         tokens = []
         i = 0
         while i < len(text):
@@ -23,10 +88,10 @@ class KeyCharTokenizer:
             match = None
             for keyword in self.C_KEYWORDS:
                 if text.startswith(keyword, i):
-                    # Ensure it's a whole word
+                    # Ensure it's a whole word (not part of an identifier)
                     if (i + len(keyword) == len(text) or 
                         not text[i + len(keyword)].isalnum() and text[i + len(keyword)] != '_'):
-                        if match is None or len(keyword) > len(match):
+                        if match is None or len(keyword) > len(match): # Prefer longer keywords
                             match = keyword
             
             if match:
@@ -37,22 +102,54 @@ class KeyCharTokenizer:
                 i += 1
         return tokens
 
-class SentencePieceTokenizer:
-    """A wrapper around the SentencePiece library."""
-    def __init__(self, model_path):
-        """Initializes the tokenizer with a trained SentencePiece model."""
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"SentencePiece model not found at {model_path}")
-        self.sp = spm.SentencePieceProcessor()
-        self.sp.load(model_path)
 
-    def tokenize(self, text):
-        """Tokenizes text using the loaded SentencePiece model."""
-        return self.sp.encode_as_pieces(text)
+class SentencePieceTokenizer(PreTrainedTokenizer):
+    vocab_files_names = VOCAB_FILES_NAMES
+    model_input_names = ["input_ids", "attention_mask"]
+
+    def __init__(self, vocab_file, spm_model_file=None, unk_token="[UNK]", sep_token="[SEP]", pad_token="[PAD]", cls_token="[CLS]", mask_token="[MASK]", **kwargs):
+        super().__init__(unk_token=unk_token, sep_token=sep_token, pad_token=pad_token, cls_token=cls_token, mask_token=mask_token, **kwargs)
+
+        if not os.path.exists(spm_model_file):
+            raise FileNotFoundError(f"SentencePiece model not found at {spm_model_file}")
+        
+        self.sp_model = spm.SentencePieceProcessor()
+        self.sp_model.Load(spm_model_file)
+
+        self.vocab = self._load_vocab(vocab_file)
+        self.ids_to_tokens = collections.OrderedDict([(ids, tok) for tok, ids in self.vocab.items()])
+
+    def _load_vocab(self, vocab_file):
+        with open(vocab_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    @property
+    def vocab_size(self):
+        return len(self.vocab)
+
+    def get_vocab(self):
+        return dict(self.vocab)
+
+    def _tokenize(self, text):
+        return self.sp_model.encode_as_pieces(text)
+
+    def _convert_token_to_id(self, token):
+        return self.vocab.get(token, self.vocab.get(self.unk_token))
+
+    def _convert_id_to_token(self, index):
+        return self.ids_to_tokens.get(index, self.unk_token)
+
+    def save_vocabulary(self, save_directory: str, filename_prefix: str = None) -> tuple:
+        if not os.path.isdir(save_directory):
+            logger.error(f"Vocabulary path ({save_directory}) should be a directory")
+            return
+        vocab_file = os.path.join(save_directory, (filename_prefix + "-" if filename_prefix else "") + VOCAB_FILES_NAMES["vocab_file"])
+        with open(vocab_file, "w", encoding="utf-8") as f:
+            json.dump(self.vocab, f, indent=2)
+        return (vocab_file,)
 
     @staticmethod
-    def train(corpus_path, model_prefix, vocab_size):
-        """Trains a new SentencePiece model."""
+    def train_model(corpus_path, model_prefix, vocab_size):
         if not os.path.exists(corpus_path):
             raise FileNotFoundError(f"Corpus file not found at {corpus_path}")
             

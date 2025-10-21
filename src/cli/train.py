@@ -6,6 +6,8 @@ def main():
     parser.add_argument("--dataset-dir", type=str, required=True, help="Path to the pre-processed training data.")
     parser.add_argument("--config", type=str, required=True, help="Path to a model configuration JSON file (e.g., BERT-base).")
     parser.add_argument("--tokenizer", type=str, required=True, choices=['char', 'keychar', 'spe'], help="Tokenizer to use.")
+    parser.add_argument("--vocab-file", type=str, default=None, help="Path to the vocabulary file (required for SentencePiece tokenizer).")
+    parser.add_argument("--spm-model-file", type=str, default=None, help="Path to the SentencePiece model file (required for SentencePiece tokenizer).")
     parser.add_argument("--masking", type=str, default='mlm', choices=['mlm', 'wwm'], help="Masking strategy.")
     parser.add_argument("--output-dir", type=str, required=True, help="Directory to save checkpoints and the final model.")
     parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs.")
