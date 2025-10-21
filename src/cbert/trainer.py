@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class TextDataset(Dataset):
     def __init__(self, file_path: str, tokenizer: PreTrainedTokenizer, max_length: int, masking_strategy: str = 'mlm'):
+        self.file_path = file_path
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.masking_strategy = masking_strategy
@@ -23,36 +24,43 @@ class TextDataset(Dataset):
         # For WWM, we need to identify whole words. This is a simple regex for C-like identifiers.
         self.word_regex = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)')
 
+        self.line_offsets = []
+        current_offset = 0
+        num_meaningful_lines = 0
+
         with open(file_path, 'r', encoding='utf-8') as f:
-            raw_lines = f.readlines()
+            for line_num, line in enumerate(f):
+                stripped_line = line.strip()
+                if not stripped_line: # Skip empty lines
+                    current_offset += len(line.encode('utf-8')) # Account for skipped line's bytes
+                    continue
+                
+                # Encode to check for meaningful content (non-special tokens)
+                # Use add_special_tokens=False to check for actual content tokens
+                encoded_content = self.tokenizer.encode(stripped_line, add_special_tokens=False, max_length=self.max_length, truncation=True)
+                if encoded_content: # If there are any actual content tokens
+                    # Tokenization Sanity Check: Warn if too many UNK tokens
+                    unk_token_id = self.tokenizer.unk_token_id
+                    if unk_token_id is not None:
+                        unk_count = encoded_content.count(unk_token_id)
+                        unk_ratio = unk_count / len(encoded_content)
+                        if unk_ratio > 0.5: # Threshold for warning (e.g., more than 50% UNK tokens)
+                            logger.warning(f"High UNK token ratio ({unk_ratio:.2f}) in line {line_num} of {file_path}: '{stripped_line[:100]}...'")
 
-        self.lines = []
-        for line in raw_lines:
-            stripped_line = line.strip()
-            if not stripped_line: # Skip empty lines
-                continue
-            
-            # Encode to check for meaningful content (non-special tokens)
-            # Use add_special_tokens=False to check for actual content tokens
-            encoded_content = self.tokenizer.encode(stripped_line, add_special_tokens=False, max_length=self.max_length, truncation=True)
-            if encoded_content: # If there are any actual content tokens
-                # Tokenization Sanity Check: Warn if too many UNK tokens
-                unk_token_id = self.tokenizer.unk_token_id
-                if unk_token_id is not None:
-                    unk_count = encoded_content.count(unk_token_id)
-                    unk_ratio = unk_count / len(encoded_content)
-                    if unk_ratio > 0.5: # Threshold for warning (e.g., more than 50% UNK tokens)
-                        logger.warning(f"High UNK token ratio ({unk_ratio:.2f}) in line: '{stripped_line[:100]}...'")
+                    self.line_offsets.append(current_offset)
+                    num_meaningful_lines += 1
+                current_offset += len(line.encode('utf-8'))
 
-                self.lines.append(stripped_line)
-
-        logger.info(f"Loaded {len(self.lines)} meaningful lines from {file_path}")
+        logger.info(f"Loaded {num_meaningful_lines} meaningful lines from {file_path}")
 
     def __len__(self):
-        return len(self.lines)
+        return len(self.line_offsets)
 
     def __getitem__(self, idx):
-        line = self.lines[idx].strip()
+        offset = self.line_offsets[idx]
+        with open(self.file_path, 'r', encoding='utf-8') as f:
+            f.seek(offset)
+            line = f.readline().strip()
         
         # Tokenize the line
         token_ids = self.tokenizer.encode(line, add_special_tokens=True, max_length=self.max_length, padding='max_length', truncation=True)
@@ -98,37 +106,33 @@ class TextDataset(Dataset):
         """Prepare masked tokens inputs/labels for whole word masking."""
         labels = inputs.clone()
         
-        words = self.word_regex.findall(text)
-        if not words:
+        # Get words from the text using the regex
+        words_in_text = [(m.group(0), m.start(), m.end()) for m in self.word_regex.finditer(text)]
+        
+        if not words_in_text:
             return self.mask_tokens_mlm(inputs, mlm_probability) # Fallback to MLM if no words are found
 
-        masked_words = []
-        for word in words:
+        # Decide which words to mask
+        words_to_mask_spans = []
+        for word, start_char, end_char in words_in_text:
             if random.random() < mlm_probability:
-                masked_words.append(word)
+                words_to_mask_spans.append((start_char, end_char))
         
-        if not masked_words:
+        if not words_to_mask_spans:
             return inputs, labels # Nothing to mask
 
-        # Create a regex to find all occurrences of the chosen words
-        mask_regex = re.compile(r'\b(' + '|'.join(re.escape(w) for w in masked_words) + r')\b')
+        # Get token spans from the tokenizer
+        token_spans = self.tokenizer._get_token_spans(text)
         
-        # This is a simplified approach. A more robust implementation would work with token-level spans.
-        # Here, we'll just mask all occurrences of the word in the line.
-        
-        # Find all token indices that correspond to the words to be masked
+        # Identify tokens to mask based on word spans
         masked_indices = torch.zeros_like(inputs).bool()
-        for match in mask_regex.finditer(text):
-            start, end = match.span()
-            # This is a simplification: it doesn't perfectly align with the tokenizer.
-            # A more rigorous approach would map character spans to token spans.
-            for i in range(start, end):
-                # This is not quite right, but it's a starting point.
-                # We need a way to map character position to token position.
-                # For now, we'll just mask the tokens that are not special tokens.
-                if inputs[i] not in self.tokenizer.all_special_ids:
-                     masked_indices[i] = True
-
+        for token_idx, (token, token_start_char, token_end_char) in enumerate(token_spans):
+            for word_start_char, word_end_char in words_to_mask_spans:
+                # Check for overlap between token span and word span
+                if max(token_start_char, word_start_char) < min(token_end_char, word_end_char):
+                    if inputs[token_idx] not in self.tokenizer.all_special_ids:
+                        masked_indices[token_idx] = True
+                        break # Move to the next token once it's marked for masking
 
         labels[~masked_indices] = -100
 
