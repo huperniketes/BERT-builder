@@ -1,0 +1,902 @@
+[
+  {
+    "name": "linux",
+    "author": "torvalds",
+    "url": "https://github.com/torvalds/linux",
+    "stars": 205183,
+    "language": "C",
+    "description": "Linux kernel source tree",
+    "commit_hash": "f406055cb18c6e299c4a783fc1effeb16be41803"
+  },
+  {
+    "name": "scrcpy",
+    "author": "Genymobile",
+    "url": "https://github.com/Genymobile/scrcpy",
+    "stars": 129857,
+    "language": "C",
+    "description": "Display and control your Android device",
+    "commit_hash": "e5e58b1b307d92cbe3432431a9e22cd648f8d4d1"
+  },
+  {
+    "name": "netdata",
+    "author": "netdata",
+    "url": "https://github.com/netdata/netdata",
+    "stars": 76418,
+    "language": "C",
+    "description": "The fastest path to AI-powered full stack observability, even for lean teams.",
+    "commit_hash": "f1f76b244b53da4f1ee5fccf890bc68937262f93"
+  },
+  {
+    "name": "redis",
+    "author": "redis",
+    "url": "https://github.com/redis/redis",
+    "stars": 71291,
+    "language": "C",
+    "description": "For developers, who are building real-time data-driven applications, Redis is the preferred, fastest, and most feature-rich cache, data structure server, and document and vector query engine.",
+    "commit_hash": "a01c0618668213a69caf40e8e6ff0ce943d708d6"
+  },
+  {
+    "name": "Ventoy",
+    "author": "ventoy",
+    "url": "https://github.com/ventoy/Ventoy",
+    "stars": 71246,
+    "language": "C",
+    "description": "A new bootable USB solution.",
+    "commit_hash": "6482f2e7b3b0421a64ca9256b137a5ee93ac53aa"
+  },
+  {
+    "name": "obs-studio",
+    "author": "obsproject",
+    "url": "https://github.com/obsproject/obs-studio",
+    "stars": 67516,
+    "language": "C",
+    "description": "OBS Studio - Free and open source software for live streaming and screen recording",
+    "commit_hash": "5ec3af3f6d6465122dc2b0abff9661cbe64b406b"
+  },
+  {
+    "name": "git",
+    "author": "git",
+    "url": "https://github.com/git/git",
+    "stars": 56871,
+    "language": "C",
+    "description": "Git Source Code Mirror - This is a publish-only repository but pull requests can be turned into patches to the mailing list via GitGitGadget (https://gitgitgadget.github.io/). Please follow Documentation/SubmittingPatches procedure for any of your improvements.",
+    "commit_hash": "4253630c6f07a4bdcc9aa62a50e26a4d466219d1"
+  },
+  {
+    "name": "FFmpeg",
+    "author": "FFmpeg",
+    "url": "https://github.com/FFmpeg/FFmpeg",
+    "stars": 53958,
+    "language": "C",
+    "description": "Mirror of https://git.ffmpeg.org/ffmpeg.git",
+    "commit_hash": "d19b7c283cf31c5ab510bfb8a8de1f0b80243428"
+  },
+  {
+    "name": "wrk",
+    "author": "wg",
+    "url": "https://github.com/wg/wrk",
+    "stars": 39627,
+    "language": "C",
+    "description": "Modern HTTP benchmarking tool",
+    "commit_hash": "a211dd5a7050b1f9e8a9870b95513060e72ac4a0"
+  },
+  {
+    "name": "curl",
+    "author": "curl",
+    "url": "https://github.com/curl/curl",
+    "stars": 39581,
+    "language": "C",
+    "description": "A command line tool and library for transferring data with URL syntax, supporting DICT, FILE, FTP, FTPS, GOPHER, GOPHERS, HTTP, HTTPS, IMAP, IMAPS, LDAP, LDAPS, MQTT, POP3, POP3S, RTMP, RTMPS, RTSP, SCP, SFTP, SMB, SMBS, SMTP, SMTPS, TELNET, TFTP, WS and WSS. libcurl offers a myriad of powerful features",
+    "commit_hash": "a000444cb0917b490a7a1635e51be3ac5bf61b3e"
+  },
+  {
+    "name": "php-src",
+    "author": "php",
+    "url": "https://github.com/php/php-src",
+    "stars": 39535,
+    "language": "C",
+    "description": "The PHP Interpreter",
+    "commit_hash": "bd82e8d149aa6d9d42cb35dcaca216346f8465a6"
+  },
+  {
+    "name": "tmux",
+    "author": "tmux",
+    "url": "https://github.com/tmux/tmux",
+    "stars": 39299,
+    "language": "C",
+    "description": "tmux source code",
+    "commit_hash": "449f255f3ef0167c6d226148cdaabac70686dde9"
+  },
+  {
+    "name": "rufus",
+    "author": "pbatard",
+    "url": "https://github.com/pbatard/rufus",
+    "stars": 33191,
+    "language": "C",
+    "description": "The Reliable USB Formatting Utility",
+    "commit_hash": "af58b1cecd9bf947af8adcf3c49c9b3cf87a18ac"
+  },
+  {
+    "name": "ijkplayer",
+    "author": "bilibili",
+    "url": "https://github.com/bilibili/ijkplayer",
+    "stars": 33013,
+    "language": "C",
+    "description": "Android/iOS video player based on FFmpeg n3.4, with MediaCodec, VideoToolbox support.",
+    "commit_hash": "30eb9441945da795079492041a791c121d2b8206"
+  },
+  {
+    "name": "jq",
+    "author": "jqlang",
+    "url": "https://github.com/jqlang/jq",
+    "stars": 32815,
+    "language": "C",
+    "description": "Command-line JSON processor",
+    "commit_hash": "b29504b4e191a4b1028bd1c252aaab0c62fbdbfa"
+  },
+  {
+    "name": "mpv",
+    "author": "mpv-player",
+    "url": "https://github.com/mpv-player/mpv",
+    "stars": 32349,
+    "language": "C",
+    "description": "\ud83c\udfa5 Command line media player",
+    "commit_hash": "233e89698e69242209645f61472445bffb36fa42"
+  },
+  {
+    "name": "my-tv",
+    "author": "lizongying",
+    "url": "https://github.com/lizongying/my-tv",
+    "stars": 32177,
+    "language": "C",
+    "description": "\u6211\u7684\u7535\u89c6 \u7535\u89c6\u76f4\u64ad\u8f6f\u4ef6\uff0c\u5b89\u88c5\u5373\u53ef\u4f7f\u7528",
+    "commit_hash": "d65ac508eb56d454d565d7a53df35fa4d5403720"
+  },
+  {
+    "name": "lede",
+    "author": "coolsnowwolf",
+    "url": "https://github.com/coolsnowwolf/lede",
+    "stars": 31019,
+    "language": "C",
+    "description": "Lean's LEDE source",
+    "commit_hash": "9b5389888dcac621cd885fd41b6501ca82bbba01"
+  },
+  {
+    "name": "stb",
+    "author": "nothings",
+    "url": "https://github.com/nothings/stb",
+    "stars": 30240,
+    "language": "C",
+    "description": "stb single-file public domain libraries for C/C++",
+    "commit_hash": "fede005abaf93d9d7f3a679d1999b2db341b360f"
+  },
+  {
+    "name": "os-tutorial",
+    "author": "cfenollosa",
+    "url": "https://github.com/cfenollosa/os-tutorial",
+    "stars": 29677,
+    "language": "C",
+    "description": "How to create an OS from scratch",
+    "commit_hash": "ce8e050d246594fda7f0067d7f4c9abeaa2b269c"
+  },
+  {
+    "name": "ExplorerPatcher",
+    "author": "valinet",
+    "url": "https://github.com/valinet/ExplorerPatcher",
+    "stars": 29305,
+    "language": "C",
+    "description": "This project aims to enhance the working environment on Windows",
+    "commit_hash": "47b44ccc45b11ce7aebea9ad893c0766b9de6afd"
+  },
+  {
+    "name": "openssl",
+    "author": "openssl",
+    "url": "https://github.com/openssl/openssl",
+    "stars": 28809,
+    "language": "C",
+    "description": "TLS/SSL and crypto library",
+    "commit_hash": "b2ed1b72fa56e71d53af213e6e5557dcce171a2c"
+  },
+  {
+    "name": "raylib",
+    "author": "raysan5",
+    "url": "https://github.com/raysan5/raylib",
+    "stars": 28603,
+    "language": "C",
+    "description": "A simple and easy-to-use library to enjoy videogames programming",
+    "commit_hash": "085f933b172f70c54afc401a6fb1401662a8a2ff"
+  },
+  {
+    "name": "WindTerm",
+    "author": "kingToolbox",
+    "url": "https://github.com/kingToolbox/WindTerm",
+    "stars": 28301,
+    "language": "C",
+    "description": "A professional cross-platform SSH/Sftp/Shell/Telnet/Tmux/Serial terminal.",
+    "commit_hash": "a8336c1d1e3dd1a981500dae8ef9eb42066de95f"
+  },
+  {
+    "name": "nginx",
+    "author": "nginx",
+    "url": "https://github.com/nginx/nginx",
+    "stars": 28288,
+    "language": "C",
+    "description": "The official NGINX Open Source repository.",
+    "commit_hash": "78d1ab5a2c00839a36ff6bac661d9785fce3c1a4"
+  },
+  {
+    "name": "GoodbyeDPI",
+    "author": "ValdikSS",
+    "url": "https://github.com/ValdikSS/GoodbyeDPI",
+    "stars": 27285,
+    "language": "C",
+    "description": "GoodbyeDPI \u2014 Deep Packet Inspection circumvention utility (for Windows)",
+    "commit_hash": "754ff6ff06b1fa72f3ac09be80549417253df8fb"
+  },
+  {
+    "name": "yabai",
+    "author": "koekeishiya",
+    "url": "https://github.com/koekeishiya/yabai",
+    "stars": 27245,
+    "language": "C",
+    "description": "A tiling window manager for macOS based on binary space partitioning",
+    "commit_hash": "9868ae3fc5348d0fcb54ce71fbd6dd39c87cb61d"
+  },
+  {
+    "name": "the_silver_searcher",
+    "author": "ggreer",
+    "url": "https://github.com/ggreer/the_silver_searcher",
+    "stars": 27028,
+    "language": "C",
+    "description": "A code-searching tool similar to ack, but faster.",
+    "commit_hash": "a61f1780b64266587e7bc30f0f5f71c6cca97c0f"
+  },
+  {
+    "name": "darknet",
+    "author": "pjreddie",
+    "url": "https://github.com/pjreddie/darknet",
+    "stars": 26331,
+    "language": "C",
+    "description": "Convolutional Neural Networks",
+    "commit_hash": "f6afaabcdf85f77e7aff2ec55c020c0e297c77f9"
+  },
+  {
+    "name": "libuv",
+    "author": "libuv",
+    "url": "https://github.com/libuv/libuv",
+    "stars": 25925,
+    "language": "C",
+    "description": "Cross-platform asynchronous I/O",
+    "commit_hash": "a944c422cca5522073e03710ca7fd08f53218358"
+  },
+  {
+    "name": "zstd",
+    "author": "facebook",
+    "url": "https://github.com/facebook/zstd",
+    "stars": 25870,
+    "language": "C",
+    "description": "Zstandard - Fast real-time compression algorithm",
+    "commit_hash": "23dae4bf49a8b36ab88509c85137b49f74bbc76d"
+  },
+  {
+    "name": "masscan",
+    "author": "robertdavidgraham",
+    "url": "https://github.com/robertdavidgraham/masscan",
+    "stars": 24951,
+    "language": "C",
+    "description": "TCP port scanner, spews SYN packets asynchronously, scanning entire Internet in under 5 minutes.",
+    "commit_hash": "b99d433505f942fb384516553442c15322efc472"
+  },
+  {
+    "name": "hashcat",
+    "author": "hashcat",
+    "url": "https://github.com/hashcat/hashcat",
+    "stars": 24550,
+    "language": "C",
+    "description": "World's fastest and most advanced password recovery utility",
+    "commit_hash": "5754fb0c34316cb17f71f07be822bf77377179ff"
+  },
+  {
+    "name": "TDengine",
+    "author": "taosdata",
+    "url": "https://github.com/taosdata/TDengine",
+    "stars": 24397,
+    "language": "C",
+    "description": "High-performance, scalable time-series database designed for Industrial IoT (IIoT) scenarios",
+    "commit_hash": "8c8d0efb5871f278b796bb4322b59a38e680449a"
+  },
+  {
+    "name": "openwrt",
+    "author": "openwrt",
+    "url": "https://github.com/openwrt/openwrt",
+    "stars": 24219,
+    "language": "C",
+    "description": "This repository is a mirror of https://git.openwrt.org/openwrt/openwrt.git It is for reference only and is not active for check-ins.  We will continue to accept Pull Requests here. They will be merged via staging trees then into openwrt.git.",
+    "commit_hash": "010c08ceb553af2ef18c13cd4412b056a87de4cd"
+  },
+  {
+    "name": "Tasmota",
+    "author": "arendst",
+    "url": "https://github.com/arendst/Tasmota",
+    "stars": 23768,
+    "language": "C",
+    "description": "Alternative firmware for ESP8266 and ESP32 based devices with easy configuration using webUI, OTA updates, automation using timers or rules, expandability and entirely local control over MQTT, HTTP, Serial or KNX. Full documentation at",
+    "commit_hash": "2b63276cdbee997717731e6e8410eae77cafa082"
+  },
+  {
+    "name": "valkey",
+    "author": "valkey-io",
+    "url": "https://github.com/valkey-io/valkey",
+    "stars": 23251,
+    "language": "C",
+    "description": "A flexible distributed key-value database that is optimized for caching and other realtime workloads.",
+    "commit_hash": "b4c93cc9c25e08d2da9c12cb7e109a176e3e885c"
+  },
+  {
+    "name": "How-to-Make-a-Computer-Operating-System",
+    "author": "SamyPesse",
+    "url": "https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System",
+    "stars": 22573,
+    "language": "C",
+    "description": "How to Make a Computer Operating System in C++",
+    "commit_hash": "eb30f8802fac9f0f1c28d3a96bb3d402bdfc4687"
+  },
+  {
+    "name": "radare2",
+    "author": "radareorg",
+    "url": "https://github.com/radareorg/radare2",
+    "stars": 22446,
+    "language": "C",
+    "description": "UNIX-like reverse engineering framework and command-line toolset",
+    "commit_hash": "ebe04603513402b754725d3ab9aeab125ddbf217"
+  },
+  {
+    "name": "bcc",
+    "author": "iovisor",
+    "url": "https://github.com/iovisor/bcc",
+    "stars": 21862,
+    "language": "C",
+    "description": "BCC - Tools for BPF-based Linux IO analysis, networking, monitoring, and more",
+    "commit_hash": "b63d7e38e8a0f6339fbd57f3a1ae7297e1993d92"
+  },
+  {
+    "name": "lvgl",
+    "author": "lvgl",
+    "url": "https://github.com/lvgl/lvgl",
+    "stars": 21686,
+    "language": "C",
+    "description": "Embedded graphics library to create beautiful UIs for any MCU, MPU and display type. ",
+    "commit_hash": "3362e28949454a0e9e25a6ff256a7f998847e9fb"
+  },
+  {
+    "name": "The-Art-Of-Programming-By-July-2nd",
+    "author": "julycoding",
+    "url": "https://github.com/julycoding/The-Art-Of-Programming-By-July-2nd",
+    "stars": 21489,
+    "language": "C",
+    "description": "\u672c\u9879\u76ee\u66fe\u51b2\u5230\u5168\u7403\u7b2c\u4e00\uff0c\u5e72\u8d27\u96c6\u9526\u89c1\u672c\u9875\u9762\u6700\u5e95\u90e8\uff0c\u53e6\u5b8c\u6574\u7cbe\u81f4\u7684\u7eb8\u8d28\u7248\u300a\u7f16\u7a0b\u4e4b\u6cd5\uff1a\u9762\u8bd5\u548c\u7b97\u6cd5\u5fc3\u5f97\u300b\u5df2\u5728\u4eac\u4e1c/\u5f53\u5f53\u4e0a\u9500\u552e",
+    "commit_hash": "7fafa61cabdc139c11ebac6cf632ec2ecf517ecf"
+  },
+  {
+    "name": "C",
+    "author": "TheAlgorithms",
+    "url": "https://github.com/TheAlgorithms/C",
+    "stars": 21125,
+    "language": "C",
+    "description": "Collection of various algorithms in mathematics, machine learning, computer science, physics, etc implemented in C for educational purposes.",
+    "commit_hash": "e5dad3fa8def3726ec850ca66a7f51521f8ad393"
+  },
+  {
+    "name": "HandBrake",
+    "author": "HandBrake",
+    "url": "https://github.com/HandBrake/HandBrake",
+    "stars": 20988,
+    "language": "C",
+    "description": "HandBrake's main development repository ",
+    "commit_hash": "3009f012cdbddfdab04712a2a6880fec5c0c34b1"
+  },
+  {
+    "name": "micropython",
+    "author": "micropython",
+    "url": "https://github.com/micropython/micropython",
+    "stars": 20958,
+    "language": "C",
+    "description": "MicroPython - a lean and efficient Python implementation for microcontrollers and constrained systems",
+    "commit_hash": "9999553aaed6f9fba09382f9615da254748f7a0c"
+  },
+  {
+    "name": "mimikatz",
+    "author": "gentilkiwi",
+    "url": "https://github.com/gentilkiwi/mimikatz",
+    "stars": 20881,
+    "language": "C",
+    "description": "A little tool to play with Windows security",
+    "commit_hash": "152b208916c27d7d1fc32d10e64879721c4d06af"
+  },
+  {
+    "name": "nnn",
+    "author": "jarun",
+    "url": "https://github.com/jarun/nnn",
+    "stars": 20734,
+    "language": "C",
+    "description": "n\u00b3 The unorthodox terminal file manager",
+    "commit_hash": "5045f80a947025427788643635f72738cdb243c3"
+  },
+  {
+    "name": "timescaledb",
+    "author": "timescale",
+    "url": "https://github.com/timescale/timescaledb",
+    "stars": 20442,
+    "language": "C",
+    "description": "A time-series database for high-performance real-time analytics packaged as a Postgres extension",
+    "commit_hash": "bcca38f72355238a3e8e4226a9aa500c3f8ed795"
+  },
+  {
+    "name": "unleashed-firmware",
+    "author": "DarkFlippers",
+    "url": "https://github.com/DarkFlippers/unleashed-firmware",
+    "stars": 20260,
+    "language": "C",
+    "description": "Flipper Zero Unleashed Firmware",
+    "commit_hash": "bd02e2f53cf7dc818b6f6d279cc816f0b4242e33"
+  },
+  {
+    "name": "cosmopolitan",
+    "author": "jart",
+    "url": "https://github.com/jart/cosmopolitan",
+    "stars": 20087,
+    "language": "C",
+    "description": "build-once run-anywhere c library",
+    "commit_hash": "f1e83d52403060d674161944e849b51f95707c9a"
+  },
+  {
+    "name": "goaccess",
+    "author": "allinurl",
+    "url": "https://github.com/allinurl/goaccess",
+    "stars": 19862,
+    "language": "C",
+    "description": "GoAccess is a real-time web log analyzer and interactive viewer that runs in a terminal in *nix systems or through your browser.",
+    "commit_hash": "6814e55b6b3c74c05054e508948d5208c2ca374b"
+  },
+  {
+    "name": "HarmonyOS",
+    "author": "Awesome-HarmonyOS",
+    "url": "https://github.com/Awesome-HarmonyOS/HarmonyOS",
+    "stars": 19738,
+    "language": "C",
+    "description": "A curated list of awesome things related to HarmonyOS. \u534e\u4e3a\u9e3f\u8499\u64cd\u4f5c\u7cfb\u7edf\u3002",
+    "commit_hash": "5d2008e97ea2547dfb3d0b4c9409953e1bf633fc"
+  },
+  {
+    "name": "qmk_firmware",
+    "author": "qmk",
+    "url": "https://github.com/qmk/qmk_firmware",
+    "stars": 19717,
+    "language": "C",
+    "description": "Open-source keyboard firmware for Atmel AVR and Arm USB families",
+    "commit_hash": "969f324de4b029574e48bfb85c3b030a41bd4d06"
+  },
+  {
+    "name": "llama2.c",
+    "author": "karpathy",
+    "url": "https://github.com/karpathy/llama2.c",
+    "stars": 18857,
+    "language": "C",
+    "description": "Inference Llama 2 in one file of pure C",
+    "commit_hash": "350e04fe35433e6d2941dce5a1f53308f87058eb"
+  },
+  {
+    "name": "postgres",
+    "author": "postgres",
+    "url": "https://github.com/postgres/postgres",
+    "stars": 18818,
+    "language": "C",
+    "description": "Mirror of the official PostgreSQL GIT repository. Note that this is just a *mirror* - we don't work with pull requests on github. To contribute, please see https://wiki.postgresql.org/wiki/Submitting_a_Patch",
+    "commit_hash": "5c0a20003b4396930a354105ccf47402ca5047d2"
+  },
+  {
+    "name": "ish",
+    "author": "ish-app",
+    "url": "https://github.com/ish-app/ish",
+    "stars": 18663,
+    "language": "C",
+    "description": "Linux shell for iOS",
+    "commit_hash": "3c80928b50e9b0732daf0beb42183f12945cae2a"
+  },
+  {
+    "name": "pgvector",
+    "author": "pgvector",
+    "url": "https://github.com/pgvector/pgvector",
+    "stars": 17984,
+    "language": "C",
+    "description": "Open-source vector similarity search for Postgres",
+    "commit_hash": "d823c44591798ba3b13c34e60657bc1a8999e44b"
+  },
+  {
+    "name": "BlackHole",
+    "author": "ExistentialAudio",
+    "url": "https://github.com/ExistentialAudio/BlackHole",
+    "stars": 17511,
+    "language": "C",
+    "description": "BlackHole is a modern macOS audio loopback driver that allows applications to pass audio to other applications with zero additional latency.",
+    "commit_hash": "20d80413c4e023051b007d3d35b64d7cd73154b8"
+  },
+  {
+    "name": "fastfetch",
+    "author": "fastfetch-cli",
+    "url": "https://github.com/fastfetch-cli/fastfetch",
+    "stars": 17358,
+    "language": "C",
+    "description": "A maintained, feature-rich and performance oriented, neofetch like system information tool.",
+    "commit_hash": "dc3e4a2d18a8745c0a70bd5b09573d2a3ab8fd03"
+  },
+  {
+    "name": "blurhash",
+    "author": "woltapp",
+    "url": "https://github.com/woltapp/blurhash",
+    "stars": 16728,
+    "language": "C",
+    "description": "A very compact representation of a placeholder for an image.",
+    "commit_hash": "712a47f946b98c30097eb1ada086ea00b18681ec"
+  },
+  {
+    "name": "ffmpeg.wasm",
+    "author": "ffmpegwasm",
+    "url": "https://github.com/ffmpegwasm/ffmpeg.wasm",
+    "stars": 16610,
+    "language": "C",
+    "description": "FFmpeg for browser, powered by WebAssembly",
+    "commit_hash": "f876f907c7e9b9bf51d4ed0b913a855a63ae63fc"
+  },
+  {
+    "name": "vlc",
+    "author": "videolan",
+    "url": "https://github.com/videolan/vlc",
+    "stars": 16574,
+    "language": "C",
+    "description": "VLC media player - All pull requests are ignored, please use MRs on https://code.videolan.org/videolan/vlc",
+    "commit_hash": "be11c02cda1a6c7af8c28a7101f39b6fc5587c38"
+  },
+  {
+    "name": "reactos",
+    "author": "reactos",
+    "url": "https://github.com/reactos/reactos",
+    "stars": 16437,
+    "language": "C",
+    "description": "A free Windows-compatible Operating System",
+    "commit_hash": "7e6e327581a3dfd8e50b58624b6a2fa42009feae"
+  },
+  {
+    "name": "esp-idf",
+    "author": "espressif",
+    "url": "https://github.com/espressif/esp-idf",
+    "stars": 16422,
+    "language": "C",
+    "description": "Espressif IoT Development Framework. Official development framework for Espressif SoCs.",
+    "commit_hash": "ab149384e12ace1b8e8f7858d52ae47ab8af4563"
+  },
+  {
+    "name": "kcp",
+    "author": "skywind3000",
+    "url": "https://github.com/skywind3000/kcp",
+    "stars": 16381,
+    "language": "C",
+    "description": ":zap: KCP - A Fast and Reliable ARQ Protocol",
+    "commit_hash": "f4f3a89cc632647dabdcb146932d2afd5591e62e"
+  },
+  {
+    "name": "open-gpu-kernel-modules",
+    "author": "NVIDIA",
+    "url": "https://github.com/NVIDIA/open-gpu-kernel-modules",
+    "stars": 16266,
+    "language": "C",
+    "description": "NVIDIA Linux open GPU kernel module source",
+    "commit_hash": "2b436058a616676ec888ef3814d1db6b2220f2eb"
+  },
+  {
+    "name": "Sandboxie",
+    "author": "sandboxie-plus",
+    "url": "https://github.com/sandboxie-plus/Sandboxie",
+    "stars": 16131,
+    "language": "C",
+    "description": "Sandboxie Plus & Classic",
+    "commit_hash": "08bdda7bf5fe43156c42e77581ed388d34bab19d"
+  },
+  {
+    "name": "sway",
+    "author": "swaywm",
+    "url": "https://github.com/swaywm/sway",
+    "stars": 16055,
+    "language": "C",
+    "description": "i3-compatible Wayland compositor",
+    "commit_hash": "90d3270970cc963454455b572883a051d3f376a1"
+  },
+  {
+    "name": "shadowsocks-libev",
+    "author": "shadowsocks",
+    "url": "https://github.com/shadowsocks/shadowsocks-libev",
+    "stars": 16044,
+    "language": "C",
+    "description": "Bug-fix-only libev port of shadowsocks. Future development moved to shadowsocks-rust",
+    "commit_hash": "9afa3cacf947f910be46b69fc5a7a1fdd02fd5e6"
+  },
+  {
+    "name": "Flipper",
+    "author": "UberGuidoZ",
+    "url": "https://github.com/UberGuidoZ/Flipper",
+    "stars": 16007,
+    "language": "C",
+    "description": "Playground (and dump) of stuff I make or modify for the Flipper Zero",
+    "commit_hash": "9f768f074ead41138ee6ab3888432398ba2786b9"
+  },
+  {
+    "name": "clay",
+    "author": "nicbarker",
+    "url": "https://github.com/nicbarker/clay",
+    "stars": 15719,
+    "language": "C",
+    "description": "High performance UI layout library in C.",
+    "commit_hash": "588b93196cc7a182a024a9ef08ba8e352904a1bd"
+  },
+  {
+    "name": "libsql",
+    "author": "tursodatabase",
+    "url": "https://github.com/tursodatabase/libsql",
+    "stars": 15698,
+    "language": "C",
+    "description": "libSQL is a fork of SQLite that is both Open Source, and Open Contributions.",
+    "commit_hash": "a55bf61192bdb89e97568de593c4af5b70d24bde"
+  },
+  {
+    "name": "sumatrapdf",
+    "author": "sumatrapdfreader",
+    "url": "https://github.com/sumatrapdfreader/sumatrapdf",
+    "stars": 15525,
+    "language": "C",
+    "description": "SumatraPDF reader",
+    "commit_hash": "cdadfde74471e9b06898e5c1e87edd98b4204597"
+  },
+  {
+    "name": "rofi",
+    "author": "davatorium",
+    "url": "https://github.com/davatorium/rofi",
+    "stars": 15180,
+    "language": "C",
+    "description": "Rofi: A window switcher, application launcher and dmenu replacement",
+    "commit_hash": "caa69c39d808b56f85ddb24679a6d50c6a32ccf0"
+  },
+  {
+    "name": "flipperzero-firmware",
+    "author": "flipperdevices",
+    "url": "https://github.com/flipperdevices/flipperzero-firmware",
+    "stars": 14965,
+    "language": "C",
+    "description": "Flipper Zero firmware source code",
+    "commit_hash": "468cc45f90757b15a05ae804699a29b45dd5246f"
+  },
+  {
+    "name": "winlator",
+    "author": "brunodev85",
+    "url": "https://github.com/brunodev85/winlator",
+    "stars": 14964,
+    "language": "C",
+    "description": "Android application for running Windows applications with Wine and Box86/Box64",
+    "commit_hash": "95b053b768669be14b8190bb9cd82ec2c6088116"
+  },
+  {
+    "name": "systemd",
+    "author": "systemd",
+    "url": "https://github.com/systemd/systemd",
+    "stars": 14765,
+    "language": "C",
+    "description": "The systemd System and Service Manager ",
+    "commit_hash": "a6836cfa0bdf1bb1fcf05686c5af3f2b5ad97f6b"
+  },
+  {
+    "name": "ImageMagick",
+    "author": "ImageMagick",
+    "url": "https://github.com/ImageMagick/ImageMagick",
+    "stars": 14712,
+    "language": "C",
+    "description": "ImageMagick is a free, open-source software suite for creating, editing, converting, and displaying images. It supports 200+ formats and offers powerful command-line tools and APIs for automation, scripting, and integration across platforms.",
+    "commit_hash": "d56b6afca237907a351681bf8cd7929e24ec91aa"
+  },
+  {
+    "name": "ecapture",
+    "author": "gojue",
+    "url": "https://github.com/gojue/ecapture",
+    "stars": 14697,
+    "language": "C",
+    "description": "Capturing SSL/TLS plaintext without a CA certificate using eBPF. Supported on Linux/Android kernels for amd64/arm64.",
+    "commit_hash": "3c250729cbaa6bbd844d0e13593145ad2472ba35"
+  },
+  {
+    "name": "esp8266_deauther",
+    "author": "SpacehuhnTech",
+    "url": "https://github.com/SpacehuhnTech/esp8266_deauther",
+    "stars": 14392,
+    "language": "C",
+    "description": "Affordable WiFi hacking platform for testing and learning",
+    "commit_hash": "b98f1598115b9400d320f7ffdf08fbc78f01607f"
+  },
+  {
+    "name": "OpenCorePkg",
+    "author": "acidanthera",
+    "url": "https://github.com/acidanthera/OpenCorePkg",
+    "stars": 14306,
+    "language": "C",
+    "description": "OpenCore bootloader",
+    "commit_hash": "92338e4236a5b584198a7c59aa9bca0c3e9cfc64"
+  },
+  {
+    "name": "glfw",
+    "author": "glfw",
+    "url": "https://github.com/glfw/glfw",
+    "stars": 14280,
+    "language": "C",
+    "description": "A multi-platform library for OpenGL, OpenGL ES, Vulkan, window and input",
+    "commit_hash": "8e15281d34a8b9ee9271ccce38177a3d812456f8"
+  },
+  {
+    "name": "nuklear",
+    "author": "vurtun",
+    "url": "https://github.com/vurtun/nuklear",
+    "stars": 14058,
+    "language": "C",
+    "description": "A single-header ANSI C gui library",
+    "commit_hash": "6b9f937475db9280d966f44f469bc80191b5092a"
+  },
+  {
+    "name": "Dummy-Robot",
+    "author": "peng-zhihui",
+    "url": "https://github.com/peng-zhihui/Dummy-Robot",
+    "stars": 14057,
+    "language": "C",
+    "description": "\u6211\u7684\u8d85\u8ff7\u4f60\u673a\u68b0\u81c2\u673a\u5668\u4eba\u9879\u76ee\u3002",
+    "commit_hash": "84453f1391c4442b5387a799571b7f67418afa2d"
+  },
+  {
+    "name": "memcached",
+    "author": "memcached",
+    "url": "https://github.com/memcached/memcached",
+    "stars": 14017,
+    "language": "C",
+    "description": "memcached development tree",
+    "commit_hash": "62b3447380d3fd547e432d1128d94cd12f2e6852"
+  },
+  {
+    "name": "nginx-rtmp-module",
+    "author": "arut",
+    "url": "https://github.com/arut/nginx-rtmp-module",
+    "stars": 13891,
+    "language": "C",
+    "description": "NGINX-based Media Streaming Server",
+    "commit_hash": "6c7719d0ba32e00b563ec70bd43dad11960fa9c4"
+  },
+  {
+    "name": "skynet",
+    "author": "cloudwu",
+    "url": "https://github.com/cloudwu/skynet",
+    "stars": 13842,
+    "language": "C",
+    "description": "A lightweight online game framework",
+    "commit_hash": "2ecf32ec73177b6914e13562835c42eeca5a51c4"
+  },
+  {
+    "name": "SDL",
+    "author": "libsdl-org",
+    "url": "https://github.com/libsdl-org/SDL",
+    "stars": 13837,
+    "language": "C",
+    "description": "Simple DirectMedia Layer",
+    "commit_hash": "427f838f5868271a89a85d1763e9abdef28ab63f"
+  },
+  {
+    "name": "seafile",
+    "author": "haiwen",
+    "url": "https://github.com/haiwen/seafile",
+    "stars": 13784,
+    "language": "C",
+    "description": "Beyond file syncing and sharing, a new way to organize your files with extensible file properties and flexible views",
+    "commit_hash": "6930a571b3eeaae490c0e77e7be766f3799150ce"
+  },
+  {
+    "name": "wazuh",
+    "author": "wazuh",
+    "url": "https://github.com/wazuh/wazuh",
+    "stars": 13715,
+    "language": "C",
+    "description": "Wazuh - The Open Source Security Platform. Unified XDR and SIEM protection for endpoints and cloud workloads.",
+    "commit_hash": "e2c9ceca0f90d48ecbecb9198f0d65e0f4db693e"
+  },
+  {
+    "name": "raspberry-pi-os",
+    "author": "s-matyukevich",
+    "url": "https://github.com/s-matyukevich/raspberry-pi-os",
+    "stars": 13631,
+    "language": "C",
+    "description": "Learning operating system development using Linux kernel and Raspberry Pi",
+    "commit_hash": "31fc1481f529ba1a72a8a6bc62dc488b84fc2cdb"
+  },
+  {
+    "name": "openresty",
+    "author": "openresty",
+    "url": "https://github.com/openresty/openresty",
+    "stars": 13393,
+    "language": "C",
+    "description": "High Performance Web Platform Based on Nginx and LuaJIT",
+    "commit_hash": "b1e411818513c676e2eb56ca7ce9f0b894be03b0"
+  },
+  {
+    "name": "zephyr",
+    "author": "zephyrproject-rtos",
+    "url": "https://github.com/zephyrproject-rtos/zephyr",
+    "stars": 13315,
+    "language": "C",
+    "description": "Primary Git Repository for the Zephyr Project. Zephyr is a new generation, scalable, optimized, secure RTOS for multiple hardware architectures.",
+    "commit_hash": "fd51dde8f5cabb557bd5a34fa2c44b374b2647fc"
+  },
+  {
+    "name": "tengine",
+    "author": "alibaba",
+    "url": "https://github.com/alibaba/tengine",
+    "stars": 13105,
+    "language": "C",
+    "description": "A distribution of Nginx with some advanced features",
+    "commit_hash": "c722791057217f14e8499899f714426ad1952e30"
+  },
+  {
+    "name": "coturn",
+    "author": "coturn",
+    "url": "https://github.com/coturn/coturn",
+    "stars": 13057,
+    "language": "C",
+    "description": "coturn TURN server project",
+    "commit_hash": "242467faba87b434fa901841ec72c4fe3da79d5d"
+  },
+  {
+    "name": "libsodium",
+    "author": "jedisct1",
+    "url": "https://github.com/jedisct1/libsodium",
+    "stars": 12985,
+    "language": "C",
+    "description": "A modern, portable, easy to use crypto library.",
+    "commit_hash": "0a9450c679480a187e7f9e77d55b76fad92991ea"
+  },
+  {
+    "name": "systeminformer",
+    "author": "winsiderss",
+    "url": "https://github.com/winsiderss/systeminformer",
+    "stars": 12922,
+    "language": "C",
+    "description": "A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware. Brought to you by Winsider Seminars & Solutions, Inc. @ http://www.windows-internals.com",
+    "commit_hash": "24247173c36cbd106ed65c25b2366365dad9d33a"
+  },
+  {
+    "name": "tig",
+    "author": "jonas",
+    "url": "https://github.com/jonas/tig",
+    "stars": 12893,
+    "language": "C",
+    "description": "Text-mode interface for git",
+    "commit_hash": "e5d9aa2d7988ab53ef78bd4c408a87836b602c25"
+  },
+  {
+    "name": "zapret",
+    "author": "bol-van",
+    "url": "https://github.com/bol-van/zapret",
+    "stars": 12759,
+    "language": "C",
+    "description": "DPI bypass multi platform",
+    "commit_hash": "29935b09347be15ecf6536950a2bce12b41e0b0b"
+  },
+  {
+    "name": "litestream",
+    "author": "benbjohnson",
+    "url": "https://github.com/benbjohnson/litestream",
+    "stars": 12716,
+    "language": "C",
+    "description": "Streaming replication for SQLite.",
+    "commit_hash": "6c5f5691a41cb5e7e1889a6619c5692e65000ef0"
+  }
+]
