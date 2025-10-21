@@ -24,11 +24,9 @@ def main():
 
     # 1. Load Model
     config = BertConfig.from_pretrained(args.model_dir)
-    try:
-        model = BertForMaskedLM.from_pretrained(args.model_dir, config=config)
-    except Exception as e:
-        print(f"Warning: Could not load model from {args.model_dir}. Creating a dummy model for testing. Error: {e}")
-        model = BertForMaskedLM(config=config) # Create a dummy model
+    model = create_cbert_model(config) # Use create_cbert_model
+    model.load_state_dict(BertForMaskedLM.from_pretrained(args.model_dir, config=config).state_dict()) # Load weights
+    model.to(device)
     model.eval() # Set model to evaluation mode
 
     # 2. Load Dataset (simplified for now)

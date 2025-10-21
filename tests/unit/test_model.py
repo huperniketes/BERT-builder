@@ -2,13 +2,23 @@
 import unittest
 import torch
 from cbert.model import create_cbert_model
-from transformers import BertForMaskedLM
+from transformers import BertForMaskedLM, BertConfig
 
 class TestModel(unittest.TestCase):
 
     def test_create_cbert_model_config(self):
         vocab_size = 1000
-        model = create_cbert_model(vocab_size)
+        # Create a dummy config to pass to the model creation function
+        config = BertConfig(
+            vocab_size=vocab_size,
+            hidden_size=768,
+            num_hidden_layers=12,
+            num_attention_heads=12,
+            intermediate_size=3072,
+            max_position_embeddings=512,
+            type_vocab_size=2,
+        )
+        model = create_cbert_model(config)
 
         # Check if the returned object is a BertForMaskedLM model
         self.assertIsInstance(model, BertForMaskedLM)
@@ -25,7 +35,17 @@ class TestModel(unittest.TestCase):
     def test_create_cbert_model_output_shape(self):
         vocab_size = 100
         max_seq_len = 50
-        model = create_cbert_model(vocab_size)
+        # Create a dummy config to pass to the model creation function
+        config = BertConfig(
+            vocab_size=vocab_size,
+            hidden_size=64, # Smaller for faster test
+            num_hidden_layers=2,
+            num_attention_heads=2,
+            intermediate_size=128,
+            max_position_embeddings=max_seq_len,
+            type_vocab_size=2,
+        )
+        model = create_cbert_model(config)
         model.eval() # Set to eval mode for inference
 
         # Create dummy input
@@ -39,7 +59,17 @@ class TestModel(unittest.TestCase):
 
     def test_create_cbert_model_num_parameters(self):
         vocab_size = 128 # A typical small vocab size for char-level
-        model = create_cbert_model(vocab_size)
+        # Create a dummy config to pass to the model creation function
+        config = BertConfig(
+            vocab_size=vocab_size,
+            hidden_size=768,
+            num_hidden_layers=12,
+            num_attention_heads=12,
+            intermediate_size=3072,
+            max_position_embeddings=512,
+            type_vocab_size=2,
+        )
+        model = create_cbert_model(config)
         num_params = model.num_parameters()
         
         # Assert that the number of parameters is within a reasonable range for a BERT-base like model

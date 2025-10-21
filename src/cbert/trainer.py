@@ -181,7 +181,7 @@ def run(args):
     tokenizer = get_tokenizer(args.tokenizer, args.vocab_file, args.spm_model_file)
 
     # 3. Create Model
-    model = BertForMaskedLM(config=config)
+    model = create_cbert_model(config)
     model.resize_token_embeddings(len(tokenizer))
 
 
