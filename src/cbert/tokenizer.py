@@ -54,6 +54,19 @@ class CharTokenizer(PreTrainedTokenizer):
     def _convert_id_to_token(self, index):
         return self.ids_to_tokens.get(index, self.unk_token)
 
+    def _get_token_spans(self, text):
+        """Returns a list of (token, start_char_idx, end_char_idx) for each token."""
+        spans = []
+        current_idx = 0
+        for token in self._tokenize(text):
+            start_char_idx = text.find(token, current_idx)
+            if start_char_idx == -1: # Should not happen if _tokenize is consistent
+                start_char_idx = current_idx # Fallback
+            end_char_idx = start_char_idx + len(token)
+            spans.append((token, start_char_idx, end_char_idx))
+            current_idx = end_char_idx
+        return spans
+
     def save_vocabulary(self, save_directory: str, filename_prefix: str = None) -> tuple:
         if not os.path.isdir(save_directory):
             logger.error(f"Vocabulary path ({save_directory}) should be a directory")
@@ -149,7 +162,7 @@ class SentencePieceTokenizer(PreTrainedTokenizer):
         return (vocab_file,)
 
     @staticmethod
-    def train_model(corpus_path, model_prefix, vocab_size):
+    def train(corpus_path, model_prefix, vocab_size):
         if not os.path.exists(corpus_path):
             raise FileNotFoundError(f"Corpus file not found at {corpus_path}")
             
