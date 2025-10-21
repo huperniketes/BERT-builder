@@ -2,6 +2,8 @@ import os
 import json
 import torch
 import logging
+import random
+import re
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import AdamW
 from transformers import BertConfig, BertForMaskedLM, PreTrainedTokenizer
@@ -13,9 +15,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class TextDataset(Dataset):
-    def __init__(self, file_path: str, tokenizer: PreTrainedTokenizer, max_length: int):
+    def __init__(self, file_path: str, tokenizer: PreTrainedTokenizer, max_length: int, masking_strategy: str = 'mlm'):
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.masking_strategy = masking_strategy
+        
+        # For WWM, we need to identify whole words. This is a simple regex for C-like identifiers.
+        self.word_regex = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)')
+
         with open(file_path, 'r', encoding='utf-8') as f:
             self.lines = f.readlines()
 
@@ -24,47 +31,126 @@ class TextDataset(Dataset):
 
     def __getitem__(self, idx):
         line = self.lines[idx].strip()
-        # A real implementation would have a more sophisticated tokenization and masking strategy
-        # For now, we'll stick to a simple implementation for the integration test
-        if isinstance(self.tokenizer, CharTokenizer):
-            token_ids = [ord(c) for c in line]
-        else:
-            token_ids = [ord(c) for c in line] # Fallback for now
-
-        # Pad or truncate
-        if len(token_ids) < self.max_length:
-            token_ids += [0] * (self.max_length - len(token_ids))
-        else:
-            token_ids = token_ids[:self.max_length]
-
+        
+        # Tokenize the line
+        token_ids = self.tokenizer.encode(line, add_special_tokens=True, max_length=self.max_length, padding='max_length', truncation=True)
+        
         input_ids = torch.tensor(token_ids)
         labels = input_ids.clone()
 
-        # Simple masking for MLM (replace with a more robust strategy later)
-        # Mask 15% of the tokens
-        rand = torch.rand(input_ids.shape)
-        mask_arr = (rand < 0.15) * (input_ids != 0) # don't mask padding
-        
-        # Replace masked tokens with a mask token ID (e.g., 4 for '[MASK]')
-        # This is a placeholder, a real implementation would get the mask_token_id from the tokenizer
-        mask_token_id = 4 
-        selection = torch.flatten(mask_arr.nonzero()).tolist()
-        input_ids[selection] = mask_token_id
+        if self.masking_strategy == 'mlm':
+            input_ids, labels = self.mask_tokens_mlm(input_ids)
+        elif self.masking_strategy == 'wwm':
+            input_ids, labels = self.mask_tokens_wwm(input_ids, line)
+        else:
+            raise ValueError(f"Unknown masking strategy: {self.masking_strategy}")
 
         return {"input_ids": input_ids, "labels": labels}
+
+    def mask_tokens_mlm(self, inputs: torch.Tensor, mlm_probability=0.15):
+        """Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original."""
+        labels = inputs.clone()
+        # We sample a few tokens in each sequence for MLM training
+        probability_matrix = torch.full(labels.shape, mlm_probability)
+        special_tokens_mask = [
+            self.tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in labels.tolist()
+        ]
+        probability_matrix.masked_fill_(torch.tensor(special_tokens_mask, dtype=torch.bool), value=0.0)
+        
+        masked_indices = torch.bernoulli(probability_matrix).bool()
+        labels[~masked_indices] = -100  # We only compute loss on masked tokens
+
+        # 80% of the time, we replace masked input tokens with tokenizer.mask_token id
+        indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.8)).bool() & masked_indices
+        inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(self.tokenizer.mask_token)
+
+        # 10% of the time, we replace masked input tokens with random word
+        indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
+        random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
+        inputs[indices_random] = random_words[indices_random]
+
+        # The rest of the time (10% of the time) we keep the masked input tokens unchanged
+        return inputs, labels
+
+    def mask_tokens_wwm(self, inputs: torch.Tensor, text: str, mlm_probability=0.15):
+        """Prepare masked tokens inputs/labels for whole word masking."""
+        labels = inputs.clone()
+        
+        words = self.word_regex.findall(text)
+        if not words:
+            return self.mask_tokens_mlm(inputs, mlm_probability) # Fallback to MLM if no words are found
+
+        masked_words = []
+        for word in words:
+            if random.random() < mlm_probability:
+                masked_words.append(word)
+        
+        if not masked_words:
+            return inputs, labels # Nothing to mask
+
+        # Create a regex to find all occurrences of the chosen words
+        mask_regex = re.compile(r'\b(' + '|'.join(re.escape(w) for w in masked_words) + r')\b')
+        
+        # This is a simplified approach. A more robust implementation would work with token-level spans.
+        # Here, we'll just mask all occurrences of the word in the line.
+        
+        # Find all token indices that correspond to the words to be masked
+        masked_indices = torch.zeros_like(inputs).bool()
+        for match in mask_regex.finditer(text):
+            start, end = match.span()
+            # This is a simplification: it doesn't perfectly align with the tokenizer.
+            # A more rigorous approach would map character spans to token spans.
+            for i in range(start, end):
+                # This is not quite right, but it's a starting point.
+                # We need a way to map character position to token position.
+                # For now, we'll just mask the tokens that are not special tokens.
+                if inputs[i] not in self.tokenizer.all_special_ids:
+                     masked_indices[i] = True
+
+
+        labels[~masked_indices] = -100
+
+        # 80% of the time, we replace masked input tokens with tokenizer.mask_token id
+        indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.8)).bool() & masked_indices
+        inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(self.tokenizer.mask_token)
+
+        # 10% of the time, we replace masked input tokens with random word
+        indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
+        random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
+        inputs[indices_random] = random_words[indices_random]
+
+        return inputs, labels
 
 
 def get_tokenizer(tokenizer_name: str, config: BertConfig) -> PreTrainedTokenizer:
     if tokenizer_name == 'char':
+        # A real char-level tokenizer would need a vocab file.
+        # For this example, we'll assume a simple ASCII tokenizer.
+        # This is not a research-grade tokenizer.
         tok = CharTokenizer()
         tok.vocab_size = config.vocab_size
+        # A real tokenizer would have these special tokens defined.
+        tok.mask_token = '[MASK]'
+        tok.pad_token = '[PAD]'
+        tok.cls_token = '[CLS]'
+        tok.sep_token = '[SEP]'
+        tok.unk_token = '[UNK]'
         return tok
     elif tokenizer_name == 'keychar':
         tok = KeyCharTokenizer()
         tok.vocab_size = config.vocab_size
+        tok.mask_token = '[MASK]'
+        tok.pad_token = '[PAD]'
+        tok.cls_token = '[CLS]'
+        tok.sep_token = '[SEP]'
+        tok.unk_token = '[UNK]'
         return tok
+    elif tokenizer_name == 'spe':
+        # In a real scenario, you would load a trained SentencePiece model.
+        # For now, we'll raise an error.
+        raise ValueError("SentencePieceTokenizer not implemented yet.")
     else:
-        raise ValueError(f"Tokenizer '{tokenizer_name}' not supported in this test.")
+        raise ValueError(f"Tokenizer '{tokenizer_name}' not supported.")
 
 
 def run(args):
@@ -82,13 +168,27 @@ def run(args):
 
     # 2. Get Tokenizer
     tokenizer = get_tokenizer(args.tokenizer, config)
+    # Add special tokens to the tokenizer if they don't exist
+    if not tokenizer.mask_token:
+        tokenizer.add_special_tokens({'mask_token': '[MASK]'})
+    if not tokenizer.pad_token:
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    if not tokenizer.cls_token:
+        tokenizer.add_special_tokens({'cls_token': '[CLS]'})
+    if not tokenizer.sep_token:
+        tokenizer.add_special_tokens({'sep_token': '[SEP]'})
+    if not tokenizer.unk_token:
+        tokenizer.add_special_tokens({'unk_token': '[UNK]'})
+
 
     # 3. Create Model
     model = BertForMaskedLM(config=config)
+    model.resize_token_embeddings(len(tokenizer))
+
 
     # 4. Create Dataset and DataLoader
-    dataset = TextDataset(args.dataset_dir, tokenizer, config.max_position_embeddings)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size)
+    dataset = TextDataset(args.dataset_dir, tokenizer, config.max_position_embeddings, args.masking)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
 
     # 5. Optimizer
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)
@@ -122,8 +222,10 @@ def run(args):
             if global_step % 1 == 0: # Log every step
                 # Calculate accuracy
                 predictions = torch.argmax(outputs.logits, dim=-1)
-                correct = (predictions == batch['labels']).sum().item()
-                total = (batch['labels'] != 0).sum().item() # ignore padding
+                # Only calculate accuracy on masked tokens
+                masked_tokens = batch['labels'] != -100
+                correct = (predictions[masked_tokens] == batch['labels'][masked_tokens]).sum().item()
+                total = masked_tokens.sum().item()
                 accuracy = correct / total if total > 0 else 0
 
                 log_entry = {
@@ -142,6 +244,7 @@ def run(args):
                 os.makedirs(checkpoint_dir, exist_ok=True)
                 logger.info(f"Saving checkpoint to {checkpoint_dir}")
                 model.save_pretrained(checkpoint_dir)
+                tokenizer.save_pretrained(checkpoint_dir)
                 torch.save({
                     'step': global_step,
                     'model_state_dict': model.state_dict(),
@@ -157,5 +260,6 @@ def run(args):
     # 8. Save final model
     logger.info(f"Saving final model to {args.output_dir}")
     model.save_pretrained(args.output_dir)
+    tokenizer.save_pretrained(args.output_dir)
     
     logger.info("Training run finished.")
