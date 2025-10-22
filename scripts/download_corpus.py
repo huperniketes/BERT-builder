@@ -8,11 +8,11 @@ import time
 # Default BOM path relative to the project root
 DEFAULT_BOM_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "dataset_bom.json")
 
-def get_top_c_repos_from_api(language="C"):
-    """Fetches the top 100 starred repositories for a given language from the GitHub API."""
-    api_url = f"https://api.github.com/search/repositories?q=language:{language}&sort=stars&order=desc&per_page=100"
+def get_top_c_repos_from_api(language="C", num_repos=100):
+    """Fetches the top starred repositories for a given language from the GitHub API."""
+    api_url = f"https://api.github.com/search/repositories?q=language:{language}&sort=stars&order=desc&per_page={num_repos}"
     try:
-        print(f"Fetching top 100 starred {language} repositories from GitHub API...")
+        print(f"Fetching top {num_repos} starred {language} repositories from GitHub API...")
         response = requests.get(api_url)
         response.raise_for_status()  # Raise an exception for bad status codes
         repos = response.json()["items"]
@@ -86,7 +86,7 @@ def clone_repo(repo_name, clone_url, output_dir, commit_hash=None, depth=None):
                 print(f"Warning: Failed to clean up {repo_name} directory: {cleanup_error.stderr}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Download C repositories from GitHub, either from an existing dataset BOM or GitHub's ranking.")
+    parser = argparse.ArgumentParser(description="Download C repositories from GitHub, either from an existing dataset BOM or initializing one with GitHub's ranking.")
     parser.add_argument("--output_dir", type=str, default=os.path.join(os.path.dirname(os.path.dirname(__file__)), "data"),
                        help="The directory to clone the repositories into (default: data/ in project root)")
     parser.add_argument("--bom_json", type=str, default=DEFAULT_BOM_PATH,
@@ -95,6 +95,8 @@ def main():
                         help="If set, queries GitHub API for top repos, downloads their latest commits, and generates a new dataset BOM.")
     parser.add_argument("--language", type=str, default="C",
                         help="Programming language to query GitHub API for when initializing BOM (default: C).")
+    parser.add_argument("--num_repos", type=int, default=100,
+                        help="Number of repositories to fetch from GitHub API when initializing BOM (default: 100).")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -104,7 +106,7 @@ def main():
 
     if args.init_bom:
         print("Initializing dataset BOM from GitHub API...")
-        api_repos = get_top_c_repos_from_api(args.language)
+        api_repos = get_top_c_repos_from_api(args.language, args.num_repos)
         if not api_repos:
             print("Could not fetch repository list from GitHub API. Exiting.")
             return
