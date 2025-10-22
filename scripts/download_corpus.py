@@ -8,11 +8,11 @@ import time
 # Default BOM path relative to the project root
 DEFAULT_BOM_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "dataset_bom.json")
 
-def get_top_c_repos_from_api():
-    """Fetches the top 100 starred C repositories from the GitHub API."""
-    api_url = "https://api.github.com/search/repositories?q=language:C&sort=stars&order=desc&per_page=100"
+def get_top_c_repos_from_api(language="C"):
+    """Fetches the top 100 starred repositories for a given language from the GitHub API."""
+    api_url = f"https://api.github.com/search/repositories?q=language:{language}&sort=stars&order=desc&per_page=100"
     try:
-        print("Fetching repository list from GitHub API...")
+        print(f"Fetching top 100 starred {language} repositories from GitHub API...")
         response = requests.get(api_url)
         response.raise_for_status()  # Raise an exception for bad status codes
         repos = response.json()["items"]
@@ -93,6 +93,8 @@ def main():
                         help=f"Path to a dataset BOM (Bill of Materials) with repo details including commit hashes. Defaults to {DEFAULT_BOM_PATH}.")
     parser.add_argument("--init_bom", action="store_true",
                         help="If set, queries GitHub API for top repos, downloads their latest commits, and generates a new dataset BOM.")
+    parser.add_argument("--language", type=str, default="C",
+                        help="Programming language to query GitHub API for when initializing BOM (default: C).")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -102,7 +104,7 @@ def main():
 
     if args.init_bom:
         print("Initializing dataset BOM from GitHub API...")
-        api_repos = get_top_c_repos_from_api()
+        api_repos = get_top_c_repos_from_api(args.language)
         if not api_repos:
             print("Could not fetch repository list from GitHub API. Exiting.")
             return
