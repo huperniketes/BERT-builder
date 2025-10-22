@@ -152,6 +152,15 @@ class SentencePieceTokenizer(PreTrainedTokenizer):
     def _convert_id_to_token(self, index):
         return self.ids_to_tokens.get(index, self.unk_token)
 
+    def _get_token_spans(self, text):
+        """Returns a list of (token, start_char_idx, end_char_idx) for each token."""
+        # For SentencePiece, we can use its internal encoding to get accurate spans
+        encoded_pieces = self.sp_model.encode(text, out_type=spm.EncodeResult)
+        spans = []
+        for piece in encoded_pieces:
+            spans.append((piece.piece, piece.begin, piece.end))
+        return spans
+
     def save_vocabulary(self, save_directory: str, filename_prefix: str = None) -> tuple:
         if not os.path.isdir(save_directory):
             logger.error(f"Vocabulary path ({save_directory}) should be a directory")
