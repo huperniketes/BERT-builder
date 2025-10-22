@@ -84,21 +84,21 @@ def find_git_repos(search_path, max_depth=1):
 
 def main():
     parser = argparse.ArgumentParser(description="Extracts detailed information from GitHub API repo data or local Git repos.")
-    parser.add_argument("--input_json", type=str, help="Path to the input JSON file (e.g., top_100_C_repos.json). Required if --update_output_json is not used.")
-    parser.add_argument("--output_json", type=str, required=True, help="Path to the output JSON file.")
+    parser.add_argument("--input_bom", type=str, help="Path to the input dataset BOM file (e.g., top_100_C_repos.json). Required if --update_bom is not used.")
+    parser.add_argument("--output_bom", type=str, required=True, help="Path to the output dataset BOM file.")
     parser.add_argument("--github_token", type=str, default=os.environ.get("GITHUB_TOKEN"),
                         help="GitHub personal access token for higher API rate limits (optional).")
     parser.add_argument("--local_path", type=str, default=None,
-                        help="Path to a local directory to search for Git repositories. Defaults to current directory if --update_output_json is used.")
-    parser.add_argument("--update_output_json", action="store_true",
-                        help="If set, updates the output_json with local Git info instead of making API calls.")
+                        help="Path to a local directory to search for Git repositories. Defaults to current directory if --update_bom is used.")
+    parser.add_argument("--update_bom", action="store_true",
+                        help="If set, updates the output_bom with local Git info instead of making API calls.")
     args = parser.parse_args()
 
-    if args.update_output_json:
-        if not os.path.exists(args.output_json):
-            print(f"Error: --update_output_json requires an existing output file at {args.output_json}")
+    if args.update_bom:
+        if not os.path.exists(args.output_bom):
+            print(f"Error: --update_bom requires an existing output file at {args.output_bom}")
             return
-        with open(args.output_json, 'r', encoding='utf-8') as f:
+        with open(args.output_bom, 'r', encoding='utf-8') as f:
             extracted_info = json.load(f)
 
         search_path = args.local_path if args.local_path else os.getcwd()
@@ -134,25 +134,24 @@ def main():
         print(f"Updated {updated_count} entries with local Git information.")
 
     else: # Original behavior: fetch from GitHub API
-        if not args.input_json:
-            parser.error("--input_json is required if --update_output_json is not used.")
+        if not args.input_bom:
+            parser.error("--input_bom is required if --update_bom is not used.")
 
-        if not os.path.exists(args.input_json):
-            print(f"Error: Input file not found at {args.input_json}")
+        if not os.path.exists(args.input_bom):
+            print(f"Error: Input file not found at {args.input_bom}")
             return
 
-        with open(args.input_json, 'r', encoding='utf-8') as f:
+        with open(args.input_bom, 'r', encoding='utf-8') as f:
             repos_data = json.load(f)
 
         extracted_info = []
         for i, repo in enumerate(repos_data):
             repo_name = repo.get("name")
-            author = repo.get("owner", {}).get("login")
-            url = repo.get("html_url")
-            stars = repo.get("stargazers_count")
+            author = repo.get("author")
+            url = repo.get("url")
+            stars = repo.get("stars")
             language = repo.get("language")
             description = repo.get("description")
-            repo_full_name = repo.get("full_name")
 
             commit_hash = None
             if repo_full_name:
@@ -170,11 +169,11 @@ def main():
                 "commit_hash": commit_hash
             })
 
-    os.makedirs(os.path.dirname(args.output_json) or '.', exist_ok=True)
-    with open(args.output_json, 'w', encoding='utf-8') as f:
+    os.makedirs(os.path.dirname(args.output_bom) or '.', exist_ok=True)
+    with open(args.output_bom, 'w', encoding='utf-8') as f:
         json.dump(extracted_info, f, indent=2)
 
-    print(f"Final information for {len(extracted_info)} repositories saved to {args.output_json}")
+    print(f"Final information for {len(extracted_info)} repositories saved to {args.output_bom}")
 
 if __name__ == "__main__":
     main()
