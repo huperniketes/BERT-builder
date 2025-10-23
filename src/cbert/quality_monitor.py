@@ -11,6 +11,7 @@ from dataclasses import dataclass, asdict
 from collections import deque, defaultdict
 import logging
 from .semantic_validator import SemanticPreservationValidator, SemanticIssue
+from .evaluation_metrics import ComprehensiveEvaluator
 
 @dataclass
 class QualityMetrics:
@@ -25,6 +26,9 @@ class QualityMetrics:
     processing_time_ms: float
     semantic_issues: int = 0
     critical_semantic_issues: int = 0
+    bleu_score: float = 0.0
+    ast_similarity: float = 0.0
+    token_accuracy: float = 0.0
 
 class RealTimeQualityMonitor:
     """Real-time monitoring of data quality during training."""
@@ -43,6 +47,7 @@ class RealTimeQualityMonitor:
         }
         self.alerts = []
         self.semantic_validator = SemanticPreservationValidator()
+        self.evaluator = ComprehensiveEvaluator()
         self.logger = logging.getLogger(__name__)
     
     def monitor_batch(self, batch: Dict[str, torch.Tensor], processing_start_time: float, 
@@ -78,14 +83,31 @@ class RealTimeQualityMonitor:
         # Processing time
         processing_time = (time.time() - processing_start_time) * 1000
         
-        # Semantic preservation check
+        # Semantic preservation and evaluation metrics
         semantic_issues = 0
         critical_semantic_issues = 0
+        bleu_score = 0.0
+        ast_similarity = 0.0
+        token_accuracy = 0.0
+        
         if original_texts and processed_texts:
+            # Semantic validation
             for orig, proc in zip(original_texts, processed_texts):
                 issues = self.semantic_validator.validate_preprocessing(orig, proc)
                 semantic_issues += len(issues)
                 critical_semantic_issues += len([i for i in issues if i.severity == 'critical'])
+            
+            # Evaluation metrics
+            bleu_score = self.evaluator.code_metrics.bleu_score(processed_texts, original_texts)
+            ast_similarities = [self.evaluator.code_metrics.ast_similarity(p, o) for p, o in zip(processed_texts, original_texts)]
+            ast_similarity = sum(ast_similarities) / len(ast_similarities) if ast_similarities else 0.0
+            
+            # Token accuracy if we have predictions
+            if 'predictions' in batch:
+                predictions = batch['predictions']
+                labels = batch.get('input_ids', torch.tensor([]))
+                if predictions.numel() > 0 and labels.numel() > 0:
+                    token_accuracy = self.evaluator.code_metrics.token_accuracy(predictions, labels)
         
         metrics = QualityMetrics(
             timestamp=time.time(),
@@ -97,7 +119,10 @@ class RealTimeQualityMonitor:
             memory_usage_mb=memory_usage,
             processing_time_ms=processing_time,
             semantic_issues=semantic_issues,
-            critical_semantic_issues=critical_semantic_issues
+            critical_semantic_issues=critical_semantic_issues,
+            bleu_score=bleu_score,
+            ast_similarity=ast_similarity,
+            token_accuracy=token_accuracy
         )
         
         # Add to sliding window
@@ -161,7 +186,10 @@ class RealTimeQualityMonitor:
                 'duplicate_ratio': sum(m.duplicate_ratio for m in metrics_list) / len(metrics_list),
                 'processing_time_ms': sum(m.processing_time_ms for m in metrics_list) / len(metrics_list),
                 'semantic_issues': sum(m.semantic_issues for m in metrics_list) / len(metrics_list),
-                'critical_semantic_issues': sum(m.critical_semantic_issues for m in metrics_list) / len(metrics_list)
+                'critical_semantic_issues': sum(m.critical_semantic_issues for m in metrics_list) / len(metrics_list),
+                'bleu_score': sum(m.bleu_score for m in metrics_list) / len(metrics_list),
+                'ast_similarity': sum(m.ast_similarity for m in metrics_list) / len(metrics_list),
+                'token_accuracy': sum(m.token_accuracy for m in metrics_list) / len(metrics_list)
             },
             'trends': self._calculate_trends(),
             'recent_alerts': self.alerts[-10:] if self.alerts else []
@@ -197,6 +225,14 @@ class RealTimeQualityMonitor:
             'semantic_quality': trend_direction(
                 sum(m.semantic_issues for m in older) / len(older),
                 sum(m.semantic_issues for m in recent) / len(recent)  # Inverted: fewer issues = better
+            ),
+            'bleu_score': trend_direction(
+                sum(m.bleu_score for m in recent) / len(recent),
+                sum(m.bleu_score for m in older) / len(older)
+            ),
+            'ast_similarity': trend_direction(
+                sum(m.ast_similarity for m in recent) / len(recent),
+                sum(m.ast_similarity for m in older) / len(older)
             )
         }
     
@@ -254,7 +290,10 @@ class TrainingQualityTracker:
             'avg_processing_time': sum(m.processing_time_ms for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0,
             'quality_alerts': len([a for a in self.batch_monitor.alerts if a['timestamp'] >= self.epoch_start_time]),
             'total_semantic_issues': sum(m.semantic_issues for m in self.epoch_batches),
-            'critical_semantic_issues': sum(m.critical_semantic_issues for m in self.epoch_batches)
+            'critical_semantic_issues': sum(m.critical_semantic_issues for m in self.epoch_batches),
+            'avg_bleu_score': sum(m.bleu_score for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0,
+            'avg_ast_similarity': sum(m.ast_similarity for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0,
+            'avg_token_accuracy': sum(m.token_accuracy for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0
         }
         
         self.epoch_metrics.append(epoch_summary)
@@ -299,5 +338,8 @@ class TrainingQualityTracker:
             'total_alerts': sum(e['quality_alerts'] for e in self.epoch_metrics),
             'total_semantic_issues': sum(e.get('total_semantic_issues', 0) for e in self.epoch_metrics),
             'total_critical_semantic_issues': sum(e.get('critical_semantic_issues', 0) for e in self.epoch_metrics),
+            'avg_bleu_score': sum(e.get('avg_bleu_score', 0) for e in self.epoch_metrics) / len(self.epoch_metrics) if self.epoch_metrics else 0,
+            'avg_ast_similarity': sum(e.get('avg_ast_similarity', 0) for e in self.epoch_metrics) / len(self.epoch_metrics) if self.epoch_metrics else 0,
+            'avg_token_accuracy': sum(e.get('avg_token_accuracy', 0) for e in self.epoch_metrics) / len(self.epoch_metrics) if self.epoch_metrics else 0,
             'epochs': self.epoch_metrics
         }
