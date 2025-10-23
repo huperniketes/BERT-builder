@@ -10,6 +10,7 @@ from transformers import BertConfig, BertForMaskedLM, PreTrainedTokenizer
 
 from .model import create_cbert_model
 from .tokenizer import CharTokenizer, KeyCharTokenizer, SentencePieceTokenizer
+from .validation import ValidationPipeline
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -175,6 +176,9 @@ def run(args):
 
     # Create output directory if it doesn't exist
     os.makedirs(args.output_dir, exist_ok=True)
+    
+    # Initialize validation pipeline
+    validator = ValidationPipeline(os.path.join(args.output_dir, "validation"))
 
     # 1. Load Config
     with open(args.config, 'r') as f:
@@ -193,6 +197,21 @@ def run(args):
     # 4. Create Dataset and DataLoader
     dataset = TextDataset(args.dataset_dir, tokenizer, config.max_position_embeddings, args.masking)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    
+    # Validate tokenization with sample data
+    sample_texts = []
+    try:
+        with open(args.dataset_dir, 'r', encoding='utf-8') as f:
+            for i, line in enumerate(f):
+                if i >= 10:  # Sample first 10 lines
+                    break
+                if line.strip():
+                    sample_texts.append(line.strip())
+    except Exception as e:
+        logger.warning(f"Could not sample texts for validation: {e}")
+    
+    if sample_texts:
+        validator.validate_tokenization(tokenizer, sample_texts)
 
     # 5. Optimizer
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)
@@ -242,6 +261,11 @@ def run(args):
                 with open(os.path.join(args.output_dir, 'training_log.json'), 'a') as f:
                     f.write(json.dumps(log_entry) + '\n')
 
+            # Validate training batch
+            batch_validation = validator.validate_training_batch(batch, outputs)
+            if not batch_validation.passed:
+                logger.error(f"Training batch validation failed at step {global_step}")
+
             # Checkpointing
             if global_step > 0 and global_step % 1 == 0: # Checkpoint every step
                 checkpoint_dir = os.path.join(args.output_dir, f"checkpoint-{global_step}")
@@ -254,6 +278,9 @@ def run(args):
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                 }, os.path.join(checkpoint_dir, 'training_state.bin'))
+                
+                # Validate checkpoint
+                validator.validate_model_checkpoint(model, tokenizer, checkpoint_dir)
 
             global_step += 1
         
@@ -265,5 +292,11 @@ def run(args):
     logger.info(f"Saving final model to {args.output_dir}")
     model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
+    
+    # Final validation summary
+    summary = validator.get_summary()
+    logger.info(f"Validation Summary: {summary['passed_stages']}/{summary['total_stages']} stages passed")
+    if summary['failed_stages']:
+        logger.warning(f"Failed stages: {summary['failed_stages']}")
     
     logger.info("Training run finished.")
