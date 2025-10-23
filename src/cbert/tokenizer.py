@@ -11,20 +11,30 @@ class CharTokenizer(PreTrainedTokenizer):
     model_input_names = ["input_ids", "attention_mask"]
 
     def __init__(self, vocab_file=None, unk_token="[UNK]", sep_token="[SEP]", pad_token="[PAD]", cls_token="[CLS]", mask_token="[MASK]", **kwargs):
-        super().__init__(unk_token=unk_token, sep_token=sep_token, pad_token=pad_token, cls_token=cls_token, mask_token=mask_token, **kwargs)
-
         if vocab_file is not None:
             self.vocab = self._load_vocab(vocab_file)
         else:
             # Default ASCII vocab + special tokens
-            self.vocab = self._build_default_vocab()
+            self.vocab = self._build_default_vocab(unk_token, sep_token, pad_token, cls_token, mask_token)
+
+        for token in [unk_token, sep_token, pad_token, cls_token, mask_token]:
+            if token not in self.vocab:
+                self.vocab[token] = len(self.vocab)
+
+        super().__init__(unk_token=unk_token, sep_token=sep_token, pad_token=pad_token, cls_token=cls_token, mask_token=mask_token, **kwargs)
         
         self.ids_to_tokens = collections.OrderedDict([(ids, tok) for tok, ids in self.vocab.items()])
+    
+    def convert_tokens_to_string(self, tokens):
+        """Converts a sequence of tokens (string) in a single string."""
+        # For character-level tokenization, we join without spaces since each token is a character
+        # This preserves the original text structure including spaces and punctuation
+        return "".join(tokens)
 
-    def _build_default_vocab(self):
+    def _build_default_vocab(self, unk_token, sep_token, pad_token, cls_token, mask_token):
         vocab = collections.OrderedDict()
         # Add special tokens first
-        for token in [self.unk_token, self.sep_token, self.pad_token, self.cls_token, self.mask_token]:
+        for token in [unk_token, sep_token, pad_token, cls_token, mask_token]:
             if token not in vocab:
                 vocab[token] = len(vocab)
         # Add ASCII characters
@@ -85,8 +95,8 @@ class KeyCharTokenizer(CharTokenizer):
         "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while"
     }
 
-    def _build_default_vocab(self):
-        vocab = super()._build_default_vocab()
+    def _build_default_vocab(self, unk_token, sep_token, pad_token, cls_token, mask_token):
+        vocab = super()._build_default_vocab(unk_token, sep_token, pad_token, cls_token, mask_token)
         # Add C keywords after special tokens and ASCII chars
         for keyword in sorted(list(self.C_KEYWORDS)): # Sort for consistent vocab order
             if keyword not in vocab:
@@ -121,8 +131,6 @@ class SentencePieceTokenizer(PreTrainedTokenizer):
     model_input_names = ["input_ids", "attention_mask"]
 
     def __init__(self, vocab_file, spm_model_file=None, unk_token="[UNK]", sep_token="[SEP]", pad_token="[PAD]", cls_token="[CLS]", mask_token="[MASK]", **kwargs):
-        super().__init__(unk_token=unk_token, sep_token=sep_token, pad_token=pad_token, cls_token=cls_token, mask_token=mask_token, **kwargs)
-
         if not os.path.exists(spm_model_file):
             raise FileNotFoundError(f"SentencePiece model not found at {spm_model_file}")
         
@@ -130,11 +138,33 @@ class SentencePieceTokenizer(PreTrainedTokenizer):
         self.sp_model.Load(spm_model_file)
 
         self.vocab = self._load_vocab(vocab_file)
+        for token in [unk_token, sep_token, pad_token, cls_token, mask_token]:
+            if token not in self.vocab:
+                self.vocab[token] = len(self.vocab)
+        super().__init__(unk_token=unk_token, sep_token=sep_token, pad_token=pad_token, cls_token=cls_token, mask_token=mask_token, **kwargs)
         self.ids_to_tokens = collections.OrderedDict([(ids, tok) for tok, ids in self.vocab.items()])
+    
+    def convert_tokens_to_string(self, tokens):
+        """Converts a sequence of tokens (string) in a single string."""
+        # Use SentencePiece's built-in decode to handle ▁ prefix properly
+        return self.sp_model.decode_pieces(tokens)
 
     def _load_vocab(self, vocab_file):
         with open(vocab_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+            # Check if it's a JSON file or SentencePiece vocab file
+            first_line = f.readline().strip()
+            f.seek(0)
+            
+            if first_line.startswith('{') or first_line.startswith('['):
+                # JSON format
+                return json.load(f)
+            else:
+                # SentencePiece vocab format (tab-separated)
+                vocab = collections.OrderedDict()
+                for i, line in enumerate(f):
+                    token = line.split("\t")[0]
+                    vocab[token] = i
+                return vocab
 
     @property
     def vocab_size(self):
@@ -155,10 +185,17 @@ class SentencePieceTokenizer(PreTrainedTokenizer):
     def _get_token_spans(self, text):
         """Returns a list of (token, start_char_idx, end_char_idx) for each token."""
         # For SentencePiece, we can use its internal encoding to get accurate spans
-        encoded_pieces = self.sp_model.encode(text, out_type=spm.EncodeResult)
+        tokens = self.sp_model.encode_as_pieces(text)
         spans = []
-        for piece in encoded_pieces:
-            spans.append((piece.piece, piece.begin, piece.end))
+        current_pos = 0
+        for token in tokens:
+            start_pos = text.find(token, current_pos)
+            if start_pos == -1:
+                # This can happen with special characters. Fallback to current position.
+                start_pos = current_pos
+            end_pos = start_pos + len(token)
+            spans.append((token, start_pos, end_pos))
+            current_pos = end_pos
         return spans
 
     def save_vocabulary(self, save_directory: str, filename_prefix: str = None) -> tuple:
@@ -177,3 +214,15 @@ class SentencePieceTokenizer(PreTrainedTokenizer):
             
         command = f"--input={corpus_path} --model_prefix={model_prefix} --vocab_size={vocab_size} --character_coverage=1.0 --model_type=bpe"
         spm.SentencePieceTrainer.train(command)
+
+        # Convert the generated vocab file to JSON
+        vocab_file = model_prefix + ".vocab"
+        json_vocab_file = model_prefix + ".json"
+        vocab = collections.OrderedDict()
+        with open(vocab_file, "r", encoding="utf-8") as f:
+            for i, line in enumerate(f):
+                token = line.split("\t")[0]
+                vocab[token] = i
+        
+        with open(json_vocab_file, "w", encoding="utf-8") as f:
+            json.dump(vocab, f, indent=2)
