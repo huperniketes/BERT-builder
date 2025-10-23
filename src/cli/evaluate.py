@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import sys
 import torch
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertForMaskedLM, BertConfig
@@ -112,6 +113,37 @@ def main():
 
     args = parser.parse_args()
 
+    # Validate SentencePiece tokenizer requirements
+    if args.tokenizer_type == 'spe':
+        if not args.vocab_file and not os.path.exists(os.path.join(args.model_dir, "vocab.json")):
+            print("Error: --vocab-file is required for SentencePiece tokenizer or vocab.json must exist in model-dir")
+            sys.exit(1)
+        if not args.spm_model_file and not os.path.exists(os.path.join(args.model_dir, "spm.model")):
+            print("Error: --spm-model-file is required for SentencePiece tokenizer or spm.model must exist in model-dir")
+            sys.exit(1)
+
+    # Validate file paths exist
+    if not os.path.exists(args.model_dir):
+        print(f"Error: Model directory does not exist: {args.model_dir}")
+        sys.exit(1)
+    if not os.path.exists(args.dataset_dir):
+        print(f"Error: Dataset directory does not exist: {args.dataset_dir}")
+        sys.exit(1)
+    if args.vocab_file and not os.path.exists(args.vocab_file):
+        print(f"Error: Vocab file does not exist: {args.vocab_file}")
+        sys.exit(1)
+    if args.spm_model_file and not os.path.exists(args.spm_model_file):
+        print(f"Error: SentencePiece model file does not exist: {args.smp_model_file}")
+        sys.exit(1)
+
+    # Validate numeric arguments
+    if args.batch_size <= 0:
+        print("Error: --batch-size must be greater than 0")
+        sys.exit(1)
+    if args.max_length <= 0:
+        print("Error: --max-length must be greater than 0")
+        sys.exit(1)
+
     # Determine device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
@@ -130,8 +162,7 @@ def main():
     logger.info(f"Tokenizer loaded: {type(tokenizer).__name__}")
 
     # 3. Load Model
-    model = create_cbert_model(config) # Use create_cbert_model
-    model.load_state_dict(BertForMaskedLM.from_pretrained(args.model_dir, config=config).state_dict()) # Load weights
+    model = BertForMaskedLM.from_pretrained(args.model_dir, config=config)
     model.to(device)
     model.eval() # Set model to evaluation mode
     logger.info("Model loaded and set to evaluation mode.")
@@ -195,7 +226,9 @@ def main():
 
     # 7. Save Results
     if args.output_file:
-        os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
+        output_dir = os.path.dirname(args.output_file)
+        if output_dir:  # Only create directory if there is one
+            os.makedirs(output_dir, exist_ok=True)
         with open(args.output_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2)
         logger.info(f"Evaluation results saved to {args.output_file}")

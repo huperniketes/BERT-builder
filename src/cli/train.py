@@ -1,4 +1,6 @@
 import argparse
+import os
+import sys
 from cbert import trainer
 
 def main():
@@ -17,6 +19,37 @@ def main():
     parser.add_argument("--resume-from-checkpoint", type=str, default=None, help="Path to a checkpoint to resume training from.")
     
     args = parser.parse_args()
+
+    # Validate SentencePiece tokenizer requirements
+    if args.tokenizer == 'spe':
+        if not args.vocab_file or not args.spm_model_file:
+            print("Error: --vocab-file and --spm-model-file are required when using SentencePiece tokenizer")
+            sys.exit(1)
+
+    # Validate file paths exist
+    if not os.path.exists(args.dataset_dir):
+        print(f"Error: Dataset directory does not exist: {args.dataset_dir}")
+        sys.exit(1)
+    if not os.path.exists(args.config):
+        print(f"Error: Config file does not exist: {args.config}")
+        sys.exit(1)
+    if args.vocab_file and not os.path.exists(args.vocab_file):
+        print(f"Error: Vocab file does not exist: {args.vocab_file}")
+        sys.exit(1)
+    if args.spm_model_file and not os.path.exists(args.spm_model_file):
+        print(f"Error: SentencePiece model file does not exist: {args.spm_model_file}")
+        sys.exit(1)
+
+    # Validate numeric arguments
+    if args.epochs <= 0:
+        print("Error: --epochs must be greater than 0")
+        sys.exit(1)
+    if args.batch_size <= 0:
+        print("Error: --batch-size must be greater than 0")
+        sys.exit(1)
+    if args.learning_rate <= 0:
+        print("Error: --learning-rate must be greater than 0")
+        sys.exit(1)
 
     trainer.run(args)
 
