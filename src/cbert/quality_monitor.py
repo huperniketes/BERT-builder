@@ -10,8 +10,29 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 from collections import deque, defaultdict
 import logging
+import traceback
+from enum import Enum
 from .semantic_validator import SemanticPreservationValidator, SemanticIssue
 from .evaluation_metrics import ComprehensiveEvaluator
+
+class ErrorSeverity(Enum):
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+@dataclass
+class ErrorReport:
+    """Structured error report."""
+    timestamp: float
+    severity: ErrorSeverity
+    component: str
+    error_type: str
+    message: str
+    batch_idx: Optional[int] = None
+    epoch: Optional[int] = None
+    traceback: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
 
 @dataclass
 class QualityMetrics:
@@ -29,6 +50,7 @@ class QualityMetrics:
     bleu_score: float = 0.0
     ast_similarity: float = 0.0
     token_accuracy: float = 0.0
+    error_count: int = 0
 
 class RealTimeQualityMonitor:
     """Real-time monitoring of data quality during training."""
@@ -48,6 +70,7 @@ class RealTimeQualityMonitor:
         self.alerts = []
         self.semantic_validator = SemanticPreservationValidator()
         self.evaluator = ComprehensiveEvaluator()
+        self.error_reports = deque(maxlen=1000)  # Keep last 1000 errors
         self.logger = logging.getLogger(__name__)
     
     def monitor_batch(self, batch: Dict[str, torch.Tensor], processing_start_time: float, 
@@ -83,31 +106,58 @@ class RealTimeQualityMonitor:
         # Processing time
         processing_time = (time.time() - processing_start_time) * 1000
         
-        # Semantic preservation and evaluation metrics
+        # Semantic preservation and evaluation metrics with error handling
         semantic_issues = 0
         critical_semantic_issues = 0
         bleu_score = 0.0
         ast_similarity = 0.0
         token_accuracy = 0.0
+        error_count = 0
         
         if original_texts and processed_texts:
-            # Semantic validation
-            for orig, proc in zip(original_texts, processed_texts):
-                issues = self.semantic_validator.validate_preprocessing(orig, proc)
-                semantic_issues += len(issues)
-                critical_semantic_issues += len([i for i in issues if i.severity == 'critical'])
-            
-            # Evaluation metrics
-            bleu_score = self.evaluator.code_metrics.bleu_score(processed_texts, original_texts)
-            ast_similarities = [self.evaluator.code_metrics.ast_similarity(p, o) for p, o in zip(processed_texts, original_texts)]
-            ast_similarity = sum(ast_similarities) / len(ast_similarities) if ast_similarities else 0.0
-            
-            # Token accuracy if we have predictions
-            if 'predictions' in batch:
-                predictions = batch['predictions']
-                labels = batch.get('input_ids', torch.tensor([]))
-                if predictions.numel() > 0 and labels.numel() > 0:
-                    token_accuracy = self.evaluator.code_metrics.token_accuracy(predictions, labels)
+            try:
+                # Semantic validation
+                for orig, proc in zip(original_texts, processed_texts):
+                    try:
+                        issues = self.semantic_validator.validate_preprocessing(orig, proc)
+                        semantic_issues += len(issues)
+                        critical_semantic_issues += len([i for i in issues if i.severity == 'critical'])
+                    except Exception as e:
+                        error_count += 1
+                        self._report_error(ErrorSeverity.ERROR, "semantic_validation", "ValidationError", 
+                                         f"Failed to validate semantic preservation: {str(e)}", traceback.format_exc())
+                
+                # Evaluation metrics
+                try:
+                    bleu_score = self.evaluator.code_metrics.bleu_score(processed_texts, original_texts)
+                except Exception as e:
+                    error_count += 1
+                    self._report_error(ErrorSeverity.WARNING, "evaluation", "BLEUError", 
+                                     f"BLEU score calculation failed: {str(e)}")
+                
+                try:
+                    ast_similarities = [self.evaluator.code_metrics.ast_similarity(p, o) for p, o in zip(processed_texts, original_texts)]
+                    ast_similarity = sum(ast_similarities) / len(ast_similarities) if ast_similarities else 0.0
+                except Exception as e:
+                    error_count += 1
+                    self._report_error(ErrorSeverity.WARNING, "evaluation", "ASTError", 
+                                     f"AST similarity calculation failed: {str(e)}")
+                
+                # Token accuracy if we have predictions
+                if 'predictions' in batch:
+                    try:
+                        predictions = batch['predictions']
+                        labels = batch.get('input_ids', torch.tensor([]))
+                        if predictions.numel() > 0 and labels.numel() > 0:
+                            token_accuracy = self.evaluator.code_metrics.token_accuracy(predictions, labels)
+                    except Exception as e:
+                        error_count += 1
+                        self._report_error(ErrorSeverity.WARNING, "evaluation", "AccuracyError", 
+                                         f"Token accuracy calculation failed: {str(e)}")
+            except Exception as e:
+                error_count += 1
+                self._report_error(ErrorSeverity.CRITICAL, "monitor_batch", "UnexpectedError", 
+                                 f"Unexpected error in batch monitoring: {str(e)}", traceback.format_exc())
         
         metrics = QualityMetrics(
             timestamp=time.time(),
@@ -122,7 +172,8 @@ class RealTimeQualityMonitor:
             critical_semantic_issues=critical_semantic_issues,
             bleu_score=bleu_score,
             ast_similarity=ast_similarity,
-            token_accuracy=token_accuracy
+            token_accuracy=token_accuracy,
+            error_count=error_count
         )
         
         # Add to sliding window
@@ -158,6 +209,9 @@ class RealTimeQualityMonitor:
         if metrics.critical_semantic_issues > self.alert_thresholds['max_critical_semantic_issues']:
             alerts.append(f"Critical semantic issues detected: {metrics.critical_semantic_issues}")
         
+        if metrics.error_count > 0:
+            alerts.append(f"Processing errors detected: {metrics.error_count}")
+        
         for alert in alerts:
             self.logger.warning(f"Quality Alert: {alert}")
             self.alerts.append({
@@ -189,10 +243,12 @@ class RealTimeQualityMonitor:
                 'critical_semantic_issues': sum(m.critical_semantic_issues for m in metrics_list) / len(metrics_list),
                 'bleu_score': sum(m.bleu_score for m in metrics_list) / len(metrics_list),
                 'ast_similarity': sum(m.ast_similarity for m in metrics_list) / len(metrics_list),
-                'token_accuracy': sum(m.token_accuracy for m in metrics_list) / len(metrics_list)
+                'token_accuracy': sum(m.token_accuracy for m in metrics_list) / len(metrics_list),
+                'error_rate': sum(m.error_count for m in metrics_list) / len(metrics_list)
             },
             'trends': self._calculate_trends(),
-            'recent_alerts': self.alerts[-10:] if self.alerts else []
+            'recent_alerts': self.alerts[-10:] if self.alerts else [],
+            'recent_errors': [asdict(e) for e in list(self.error_reports)[-10:]]
         }
     
     def _calculate_trends(self) -> Dict[str, str]:
@@ -248,6 +304,54 @@ class RealTimeQualityMonitor:
             json.dump(data, f, indent=2)
         
         self.logger.info(f"Quality metrics exported to {filepath}")
+    
+    def _report_error(self, severity: ErrorSeverity, component: str, error_type: str, 
+                     message: str, tb: Optional[str] = None, context: Optional[Dict] = None):
+        """Report and log an error."""
+        error_report = ErrorReport(
+            timestamp=time.time(),
+            severity=severity,
+            component=component,
+            error_type=error_type,
+            message=message,
+            traceback=tb,
+            context=context
+        )
+        
+        self.error_reports.append(error_report)
+        
+        # Log based on severity
+        log_msg = f"[{component}] {error_type}: {message}"
+        if severity == ErrorSeverity.CRITICAL:
+            self.logger.critical(log_msg)
+        elif severity == ErrorSeverity.ERROR:
+            self.logger.error(log_msg)
+        elif severity == ErrorSeverity.WARNING:
+            self.logger.warning(log_msg)
+        else:
+            self.logger.info(log_msg)
+    
+    def get_error_summary(self) -> Dict[str, Any]:
+        """Get summary of errors by type and severity."""
+        if not self.error_reports:
+            return {'total_errors': 0}
+        
+        errors_by_severity = defaultdict(int)
+        errors_by_type = defaultdict(int)
+        errors_by_component = defaultdict(int)
+        
+        for error in self.error_reports:
+            errors_by_severity[error.severity.value] += 1
+            errors_by_type[error.error_type] += 1
+            errors_by_component[error.component] += 1
+        
+        return {
+            'total_errors': len(self.error_reports),
+            'by_severity': dict(errors_by_severity),
+            'by_type': dict(errors_by_type),
+            'by_component': dict(errors_by_component),
+            'recent_critical': [asdict(e) for e in self.error_reports if e.severity == ErrorSeverity.CRITICAL][-5:]
+        }
 
 class TrainingQualityTracker:
     """Track quality metrics throughout the entire training process."""
@@ -293,7 +397,8 @@ class TrainingQualityTracker:
             'critical_semantic_issues': sum(m.critical_semantic_issues for m in self.epoch_batches),
             'avg_bleu_score': sum(m.bleu_score for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0,
             'avg_ast_similarity': sum(m.ast_similarity for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0,
-            'avg_token_accuracy': sum(m.token_accuracy for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0
+            'avg_token_accuracy': sum(m.token_accuracy for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0,
+            'total_errors': sum(m.error_count for m in self.epoch_batches)
         }
         
         self.epoch_metrics.append(epoch_summary)
@@ -304,22 +409,8 @@ class TrainingQualityTracker:
         with open(epoch_file, 'w') as f:
             json.dump({
                 'epoch_summary': epoch_summary,
-                'batch_metrics': [asdict(m) for m in self.epoch_batches]
-            }, f, indent=2)
-        
-        self.logger.info(f"Epoch {self.current_epoch} completed: {epoch_summary}")f.epoch_batches else 0,
-            'quality_alerts': len([a for a in self.batch_monitor.alerts if a['timestamp'] >= self.epoch_start_time])
-        }
-        
-        self.epoch_metrics.append(epoch_summary)
-        
-        # Save epoch metrics
-        os.makedirs(self.output_dir, exist_ok=True)
-        epoch_file = f"{self.output_dir}/quality_epoch_{self.current_epoch}.json"
-        with open(epoch_file, 'w') as f:
-            json.dump({
-                'epoch_summary': epoch_summary,
-                'batch_metrics': [asdict(m) for m in self.epoch_batches]
+                'batch_metrics': [asdict(m) for m in self.epoch_batches],
+                'error_summary': self.batch_monitor.get_error_summary()
             }, f, indent=2)
         
         self.logger.info(f"Epoch {self.current_epoch} completed: {epoch_summary}")
@@ -341,5 +432,12 @@ class TrainingQualityTracker:
             'avg_bleu_score': sum(e.get('avg_bleu_score', 0) for e in self.epoch_metrics) / len(self.epoch_metrics) if self.epoch_metrics else 0,
             'avg_ast_similarity': sum(e.get('avg_ast_similarity', 0) for e in self.epoch_metrics) / len(self.epoch_metrics) if self.epoch_metrics else 0,
             'avg_token_accuracy': sum(e.get('avg_token_accuracy', 0) for e in self.epoch_metrics) / len(self.epoch_metrics) if self.epoch_metrics else 0,
-            'epochs': self.epoch_metrics
+            'epochs': self.epoch_metrics,
+            'total_errors': sum(e.get('total_errors', 0) for e in self.epoch_metrics)
         }
+    
+    def report_training_error(self, error_type: str, message: str, severity: ErrorSeverity = ErrorSeverity.ERROR, 
+                             context: Optional[Dict] = None):
+        """Report a training-level error."""
+        self.batch_monitor._report_error(severity, "training", error_type, message, 
+                                       traceback.format_exc(), context)
