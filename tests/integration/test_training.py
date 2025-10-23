@@ -147,7 +147,8 @@ class TestTrainerIntegration(unittest.TestCase):
         with open(log_file, 'r') as f:
             log_entries = [json.loads(line) for line in f]
         self.assertEqual(len(log_entries), 5) # Should have 5 entries (steps 0-4)
-        self.assertEqual(log_entries[0]['step'], 3) # First logged step should be 3 (resumed from 2+1=3, logged at 3)
+        self.assertEqual(log_entries[0]['step'], 0) # First logged step should be 0 (from first run)
+        self.assertEqual(log_entries[3]['step'], 3) # First resumed step should be 3 (resumed from 2+1=3)
         self.assertEqual(log_entries[-1]['step'], 4) # Last logged step should be 4
 
         # Check final model saving
