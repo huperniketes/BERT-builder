@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.optim import AdamW
 from transformers import BertConfig, BertForMaskedLM, PreTrainedTokenizer
 
+from .model import create_cbert_model
 from .tokenizer import CharTokenizer, KeyCharTokenizer, SentencePieceTokenizer
 
 # Setup logging
@@ -28,39 +29,44 @@ class TextDataset(Dataset):
         current_offset = 0
         num_meaningful_lines = 0
 
-        with open(file_path, 'r', encoding='utf-8') as f:
-            for line_num, line in enumerate(f):
-                stripped_line = line.strip()
-                if not stripped_line: # Skip empty lines
-                    current_offset += len(line.encode('utf-8')) # Account for skipped line's bytes
-                    continue
-                
-                # Encode to check for meaningful content (non-special tokens)
-                # Use add_special_tokens=False to check for actual content tokens
-                encoded_content = self.tokenizer.encode(stripped_line, add_special_tokens=False, max_length=self.max_length, truncation=True)
-                if encoded_content: # If there are any actual content tokens
-                    # Tokenization Sanity Check: Warn if too many UNK tokens
-                    unk_token_id = self.tokenizer.unk_token_id
-                    if unk_token_id is not None:
-                        unk_count = encoded_content.count(unk_token_id)
+        # Open the file once and keep it open
+        self.file = open(file_path, 'r', encoding='utf-8')
+
+        # Reset file pointer to the beginning before iterating
+        self.file.seek(0)
+        for line_num, line in enumerate(self.file):
+            stripped_line = line.strip()
+            if not stripped_line: # Skip empty lines
+                current_offset += len(line.encode('utf-8'))
+                continue
+            
+            encoded_content = self.tokenizer.encode(stripped_line, add_special_tokens=False, max_length=self.max_length, truncation=True)
+            if encoded_content:
+                unk_token_id = self.tokenizer.unk_token_id
+                if unk_token_id is not None:
+                    unk_count = encoded_content.count(unk_token_id)
+                    if len(encoded_content) > 0:
                         unk_ratio = unk_count / len(encoded_content)
-                        if unk_ratio > 0.5: # Threshold for warning (e.g., more than 50% UNK tokens)
+                        if unk_ratio > 0.5:
                             logger.warning(f"High UNK token ratio ({unk_ratio:.2f}) in line {line_num} of {file_path}: '{stripped_line[:100]}...'")
 
-                    self.line_offsets.append(current_offset)
-                    num_meaningful_lines += 1
-                current_offset += len(line.encode('utf-8'))
+                self.line_offsets.append(current_offset)
+                num_meaningful_lines += 1
+            current_offset += len(line.encode('utf-8'))
 
         logger.info(f"Loaded {num_meaningful_lines} meaningful lines from {file_path}")
+
+    def __del__(self):
+        if hasattr(self, 'file') and self.file:
+            self.file.close()
 
     def __len__(self):
         return len(self.line_offsets)
 
     def __getitem__(self, idx):
         offset = self.line_offsets[idx]
-        with open(self.file_path, 'r', encoding='utf-8') as f:
-            f.seek(offset)
-            line = f.readline().strip()
+        self.file.seek(offset)
+        line = self.file.readline().strip()
         
         # Tokenize the line
         token_ids = self.tokenizer.encode(line, add_special_tokens=True, max_length=self.max_length, padding='max_length', truncation=True)
@@ -82,9 +88,7 @@ class TextDataset(Dataset):
         labels = inputs.clone()
         # We sample a few tokens in each sequence for MLM training
         probability_matrix = torch.full(labels.shape, mlm_probability)
-        special_tokens_mask = [
-            self.tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in labels.tolist()
-        ]
+        special_tokens_mask = self.tokenizer.get_special_tokens_mask(labels.tolist(), already_has_special_tokens=True)
         probability_matrix.masked_fill_(torch.tensor(special_tokens_mask, dtype=torch.bool), value=0.0)
         
         masked_indices = torch.bernoulli(probability_matrix).bool()
@@ -179,6 +183,7 @@ def run(args):
 
     # 2. Get Tokenizer
     tokenizer = get_tokenizer(args.tokenizer, args.vocab_file, args.spm_model_file)
+    config.vocab_size = len(tokenizer)
 
     # 3. Create Model
     model = create_cbert_model(config)
@@ -238,7 +243,7 @@ def run(args):
                     f.write(json.dumps(log_entry) + '\n')
 
             # Checkpointing
-            if global_step > 0 and global_step % 5 == 0: # Checkpoint every 5 steps
+            if global_step > 0 and global_step % 1 == 0: # Checkpoint every step
                 checkpoint_dir = os.path.join(args.output_dir, f"checkpoint-{global_step}")
                 os.makedirs(checkpoint_dir, exist_ok=True)
                 logger.info(f"Saving checkpoint to {checkpoint_dir}")

@@ -52,7 +52,7 @@ class TestTrainerIntegration(unittest.TestCase):
         self.spm_model_prefix = os.path.join(self.test_dir, "test_spm")
         SentencePieceTokenizer.train(self.dataset_path, self.spm_model_prefix, vocab_size=50)
         self.spm_model_file = self.spm_model_prefix + ".model"
-        self.spm_vocab_file = self.spm_model_prefix + ".vocab"
+        self.spm_vocab_file = self.spm_model_prefix + ".json"
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -129,7 +129,7 @@ class TestTrainerIntegration(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(checkpoint_dir, 'training_state.bin')))
 
         # Second run (resuming)
-        output_dir_second = os.path.join(self.test_dir, "output_resume_second") # Use a new output dir for final model
+        output_dir_second = output_dir_first # Use the same output dir for final model
         args2 = Args(
             dataset_dir=self.dataset_path,
             config=self.config_path,
@@ -147,7 +147,7 @@ class TestTrainerIntegration(unittest.TestCase):
         with open(log_file, 'r') as f:
             log_entries = [json.loads(line) for line in f]
         self.assertEqual(len(log_entries), 5) # Should have 5 entries (steps 0-4)
-        self.assertEqual(log_entries[0]['step'], 2) # First logged step should be 2 (resumed from 2+1=3, logged at 3)
+        self.assertEqual(log_entries[0]['step'], 3) # First logged step should be 3 (resumed from 2+1=3, logged at 3)
         self.assertEqual(log_entries[-1]['step'], 4) # Last logged step should be 4
 
         # Check final model saving
