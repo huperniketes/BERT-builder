@@ -10,6 +10,7 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 from collections import deque, defaultdict
 import logging
+from .semantic_validator import SemanticPreservationValidator, SemanticIssue
 
 @dataclass
 class QualityMetrics:
@@ -22,6 +23,8 @@ class QualityMetrics:
     encoding_errors: int
     memory_usage_mb: float
     processing_time_ms: float
+    semantic_issues: int = 0
+    critical_semantic_issues: int = 0
 
 class RealTimeQualityMonitor:
     """Real-time monitoring of data quality during training."""
@@ -34,12 +37,16 @@ class RealTimeQualityMonitor:
             'max_avg_length': 1000,
             'min_vocab_coverage': 0.1,
             'max_duplicate_ratio': 0.3,
-            'max_encoding_errors': 5
+            'max_encoding_errors': 5,
+            'max_semantic_issues': 3,
+            'max_critical_semantic_issues': 1
         }
         self.alerts = []
+        self.semantic_validator = SemanticPreservationValidator()
         self.logger = logging.getLogger(__name__)
     
-    def monitor_batch(self, batch: Dict[str, torch.Tensor], processing_start_time: float) -> QualityMetrics:
+    def monitor_batch(self, batch: Dict[str, torch.Tensor], processing_start_time: float, 
+                     original_texts: Optional[List[str]] = None, processed_texts: Optional[List[str]] = None) -> QualityMetrics:
         """Monitor quality metrics for a single batch."""
         start_time = time.time()
         
@@ -71,6 +78,15 @@ class RealTimeQualityMonitor:
         # Processing time
         processing_time = (time.time() - processing_start_time) * 1000
         
+        # Semantic preservation check
+        semantic_issues = 0
+        critical_semantic_issues = 0
+        if original_texts and processed_texts:
+            for orig, proc in zip(original_texts, processed_texts):
+                issues = self.semantic_validator.validate_preprocessing(orig, proc)
+                semantic_issues += len(issues)
+                critical_semantic_issues += len([i for i in issues if i.severity == 'critical'])
+        
         metrics = QualityMetrics(
             timestamp=time.time(),
             batch_size=batch_size,
@@ -79,7 +95,9 @@ class RealTimeQualityMonitor:
             duplicate_ratio=duplicate_ratio,
             encoding_errors=0,  # Would need actual encoding error detection
             memory_usage_mb=memory_usage,
-            processing_time_ms=processing_time
+            processing_time_ms=processing_time,
+            semantic_issues=semantic_issues,
+            critical_semantic_issues=critical_semantic_issues
         )
         
         # Add to sliding window
@@ -109,6 +127,12 @@ class RealTimeQualityMonitor:
         if metrics.encoding_errors > self.alert_thresholds['max_encoding_errors']:
             alerts.append(f"Encoding errors detected: {metrics.encoding_errors}")
         
+        if metrics.semantic_issues > self.alert_thresholds['max_semantic_issues']:
+            alerts.append(f"High semantic issues count: {metrics.semantic_issues}")
+        
+        if metrics.critical_semantic_issues > self.alert_thresholds['max_critical_semantic_issues']:
+            alerts.append(f"Critical semantic issues detected: {metrics.critical_semantic_issues}")
+        
         for alert in alerts:
             self.logger.warning(f"Quality Alert: {alert}")
             self.alerts.append({
@@ -135,7 +159,9 @@ class RealTimeQualityMonitor:
                 'sequence_length': sum(m.avg_sequence_length for m in metrics_list) / len(metrics_list),
                 'vocab_coverage': sum(m.vocab_coverage for m in metrics_list) / len(metrics_list),
                 'duplicate_ratio': sum(m.duplicate_ratio for m in metrics_list) / len(metrics_list),
-                'processing_time_ms': sum(m.processing_time_ms for m in metrics_list) / len(metrics_list)
+                'processing_time_ms': sum(m.processing_time_ms for m in metrics_list) / len(metrics_list),
+                'semantic_issues': sum(m.semantic_issues for m in metrics_list) / len(metrics_list),
+                'critical_semantic_issues': sum(m.critical_semantic_issues for m in metrics_list) / len(metrics_list)
             },
             'trends': self._calculate_trends(),
             'recent_alerts': self.alerts[-10:] if self.alerts else []
@@ -167,6 +193,10 @@ class RealTimeQualityMonitor:
             'processing_time': trend_direction(
                 sum(m.processing_time_ms for m in recent) / len(recent),
                 sum(m.processing_time_ms for m in older) / len(older)
+            ),
+            'semantic_quality': trend_direction(
+                sum(m.semantic_issues for m in older) / len(older),
+                sum(m.semantic_issues for m in recent) / len(recent)  # Inverted: fewer issues = better
             )
         }
     
@@ -198,10 +228,11 @@ class TrainingQualityTracker:
         self.epoch_start_time = time.time()
         self.epoch_batches = []
     
-    def track_batch(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> QualityMetrics:
+    def track_batch(self, batch: Dict[str, torch.Tensor], batch_idx: int, 
+                   original_texts: Optional[List[str]] = None, processed_texts: Optional[List[str]] = None) -> QualityMetrics:
         """Track quality for a single batch."""
         batch_start_time = time.time()
-        metrics = self.batch_monitor.monitor_batch(batch, batch_start_time)
+        metrics = self.batch_monitor.monitor_batch(batch, batch_start_time, original_texts, processed_texts)
         
         # Add batch context
         metrics.batch_idx = batch_idx
@@ -212,20 +243,24 @@ class TrainingQualityTracker:
     
     def end_epoch(self):
         """Finalize epoch tracking and save metrics."""
+        import os
         epoch_duration = time.time() - self.epoch_start_time
         
         epoch_summary = {
             'epoch': self.current_epoch,
             'duration_seconds': epoch_duration,
             'total_batches': len(self.epoch_batches),
-            'avg_batch_size': sum(m.batch_size for m in self.epoch_batches) / len(self.epoch_batches),
-            'avg_processing_time': sum(m.processing_time_ms for m in self.epoch_batches) / len(self.epoch_batches),
-            'quality_alerts': len([a for a in self.batch_monitor.alerts if a['timestamp'] >= self.epoch_start_time])
+            'avg_batch_size': sum(m.batch_size for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0,
+            'avg_processing_time': sum(m.processing_time_ms for m in self.epoch_batches) / len(self.epoch_batches) if self.epoch_batches else 0,
+            'quality_alerts': len([a for a in self.batch_monitor.alerts if a['timestamp'] >= self.epoch_start_time]),
+            'total_semantic_issues': sum(m.semantic_issues for m in self.epoch_batches),
+            'critical_semantic_issues': sum(m.critical_semantic_issues for m in self.epoch_batches)
         }
         
         self.epoch_metrics.append(epoch_summary)
         
         # Save epoch metrics
+        os.makedirs(self.output_dir, exist_ok=True)
         epoch_file = f"{self.output_dir}/quality_epoch_{self.current_epoch}.json"
         with open(epoch_file, 'w') as f:
             json.dump({
@@ -233,68 +268,36 @@ class TrainingQualityTracker:
                 'batch_metrics': [asdict(m) for m in self.epoch_batches]
             }, f, indent=2)
         
-        self.logger.info(f"Epoch {self.current_epoch} quality metrics saved to {epoch_file}")
+        self.logger.info(f"Epoch {self.current_epoch} completed: {epoch_summary}")f.epoch_batches else 0,
+            'quality_alerts': len([a for a in self.batch_monitor.alerts if a['timestamp'] >= self.epoch_start_time])
+        }
+        
+        self.epoch_metrics.append(epoch_summary)
+        
+        # Save epoch metrics
+        os.makedirs(self.output_dir, exist_ok=True)
+        epoch_file = f"{self.output_dir}/quality_epoch_{self.current_epoch}.json"
+        with open(epoch_file, 'w') as f:
+            json.dump({
+                'epoch_summary': epoch_summary,
+                'batch_metrics': [asdict(m) for m in self.epoch_batches]
+            }, f, indent=2)
+        
+        self.logger.info(f"Epoch {self.current_epoch} completed: {epoch_summary}")
     
-    def generate_training_report(self) -> Dict[str, Any]:
-        """Generate comprehensive training quality report."""
+    def get_training_summary(self) -> Dict[str, Any]:
+        """Get overall training quality summary."""
         if not self.epoch_metrics:
-            return {'status': 'no_training_data'}
+            return {'status': 'no_data'}
         
         return {
             'total_epochs': len(self.epoch_metrics),
-            'total_duration': sum(e['duration_seconds'] for e in self.epoch_metrics),
+            'total_training_time': sum(e['duration_seconds'] for e in self.epoch_metrics),
             'avg_epoch_duration': sum(e['duration_seconds'] for e in self.epoch_metrics) / len(self.epoch_metrics),
             'total_batches': sum(e['total_batches'] for e in self.epoch_metrics),
-            'quality_trend': self._analyze_quality_trend(),
-            'performance_trend': self._analyze_performance_trend(),
-            'recommendations': self._generate_recommendations()
+            'avg_batch_size': sum(e['avg_batch_size'] for e in self.epoch_metrics) / len(self.epoch_metrics),
+            'total_alerts': sum(e['quality_alerts'] for e in self.epoch_metrics),
+            'total_semantic_issues': sum(e.get('total_semantic_issues', 0) for e in self.epoch_metrics),
+            'total_critical_semantic_issues': sum(e.get('critical_semantic_issues', 0) for e in self.epoch_metrics),
+            'epochs': self.epoch_metrics
         }
-    
-    def _analyze_quality_trend(self) -> Dict[str, Any]:
-        """Analyze quality trends across epochs."""
-        if len(self.epoch_metrics) < 2:
-            return {'status': 'insufficient_epochs'}
-        
-        first_half = self.epoch_metrics[:len(self.epoch_metrics)//2]
-        second_half = self.epoch_metrics[len(self.epoch_metrics)//2:]
-        
-        first_alerts = sum(e['quality_alerts'] for e in first_half) / len(first_half)
-        second_alerts = sum(e['quality_alerts'] for e in second_half) / len(second_half)
-        
-        return {
-            'alert_trend': 'improving' if second_alerts < first_alerts else 'degrading',
-            'first_half_avg_alerts': first_alerts,
-            'second_half_avg_alerts': second_alerts
-        }
-    
-    def _analyze_performance_trend(self) -> Dict[str, Any]:
-        """Analyze performance trends across epochs."""
-        if len(self.epoch_metrics) < 2:
-            return {'status': 'insufficient_epochs'}
-        
-        processing_times = [e['avg_processing_time'] for e in self.epoch_metrics]
-        
-        return {
-            'trend': 'improving' if processing_times[-1] < processing_times[0] else 'degrading',
-            'first_epoch_time': processing_times[0],
-            'last_epoch_time': processing_times[-1],
-            'improvement_pct': ((processing_times[0] - processing_times[-1]) / processing_times[0]) * 100
-        }
-    
-    def _generate_recommendations(self) -> List[str]:
-        """Generate recommendations based on quality analysis."""
-        recommendations = []
-        
-        quality_trend = self._analyze_quality_trend()
-        if quality_trend.get('alert_trend') == 'degrading':
-            recommendations.append("Quality alerts increasing - review data preprocessing pipeline")
-        
-        performance_trend = self._analyze_performance_trend()
-        if performance_trend.get('trend') == 'degrading':
-            recommendations.append("Processing time increasing - consider batch size optimization")
-        
-        recent_summary = self.batch_monitor.get_quality_summary()
-        if recent_summary.get('averages', {}).get('duplicate_ratio', 0) > 0.2:
-            recommendations.append("High duplicate ratio detected - review data deduplication")
-        
-        return recommendations

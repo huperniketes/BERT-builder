@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from typing import List, Dict, Any
 from .validation import ValidationPipeline
+from .semantic_validator import SemanticPreservationValidator
 
 def remove_comments(text):
     """Removes C-style comments from a string."""
@@ -15,12 +16,76 @@ def remove_comments(text):
     text = re.sub(r'//.*', '', text)
     return text
 
+def remove_comments_safe(text):
+    """Safely remove comments while preserving string literals and preprocessor directives."""
+    result = []
+    i = 0
+    in_string = False
+    in_char = False
+    string_char = None
+    
+    while i < len(text):
+        char = text[i]
+        
+        # Handle string literals
+        if not in_char and char in ['"', "'"] and (i == 0 or text[i-1] != '\\'):
+            if not in_string:
+                in_string = True
+                string_char = char
+            elif char == string_char:
+                in_string = False
+                string_char = None
+            result.append(char)
+            i += 1
+            continue
+        
+        # Skip comment removal inside strings
+        if in_string:
+            result.append(char)
+            i += 1
+            continue
+        
+        # Handle /* */ comments
+        if i < len(text) - 1 and text[i:i+2] == '/*':
+            # Skip to end of comment
+            j = i + 2
+            while j < len(text) - 1 and text[j:j+2] != '*/':
+                j += 1
+            if j < len(text) - 1:
+                i = j + 2
+            else:
+                i = len(text)
+            result.append(' ')  # Replace with space to preserve structure
+            continue
+        
+        # Handle // comments
+        if i < len(text) - 1 and text[i:i+2] == '//':
+            # Skip to end of line
+            while i < len(text) and text[i] != '\n':
+                i += 1
+            continue
+        
+        result.append(char)
+        i += 1
+    
+    return ''.join(result)
+
+def normalize_whitespace(text):
+    """Normalize whitespace while preserving code structure."""
+    # Preserve single spaces around operators and keywords
+    text = re.sub(r'\s+', ' ', text)  # Multiple spaces to single
+    text = re.sub(r'\s*([{}();,])\s*', r'\1', text)  # Remove spaces around structural chars
+    text = re.sub(r'\s*([=+\-*/%<>!&|^])\s*', r' \1 ', text)  # Normalize operator spacing
+    return text.strip()
+
 def preprocess_code(code: str) -> str:
-    """Preprocess C code by removing comments and normalizing."""
-    # Remove comments
-    cleaned = remove_comments(code)
+    """Preprocess C code by removing comments and normalizing while preserving semantics."""
+    # Remove comments but preserve string literals and preprocessor directives
+    cleaned = remove_comments_safe(code)
     # Remove null bytes
     cleaned = cleaned.replace('\x00', '')
+    # Normalize whitespace while preserving structure
+    cleaned = normalize_whitespace(cleaned)
     # Normalize UTF-8 encoding
     cleaned = cleaned.encode('utf-8', errors='replace').decode('utf-8')
     return cleaned
@@ -63,16 +128,24 @@ class CCodeDataset(Dataset):
         }
 
 def process_file(file_path):
-    """Reads a file, removes comments, and returns the cleaned text."""
+    """Reads a file, removes comments, and returns the cleaned text with semantic validation."""
     try:
         with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
             content = f.read()
             # Explicitly remove null bytes, as they can cause issues with text processing
             content = content.replace('\x00', '')
-            cleaned_text = remove_comments(content)
-
-            # Normalize UTF-8 encoding while preserving foreign language text in strings
-            cleaned_text = cleaned_text.encode('utf-8', errors='replace').decode('utf-8')
+            
+            # Use semantic-aware preprocessing
+            cleaned_text = preprocess_code(content)
+            
+            # Validate semantic preservation for critical files
+            if len(content) > 100:  # Only validate non-trivial files
+                validator = SemanticPreservationValidator()
+                issues = validator.validate_preprocessing(content, cleaned_text)
+                
+                critical_issues = [i for i in issues if i.severity == 'critical']
+                if critical_issues:
+                    print(f"WARNING: Critical semantic issues in {file_path}: {len(critical_issues)} issues")
 
             return cleaned_text
     except Exception as e:
@@ -93,6 +166,7 @@ def main():
     # Initialize validation pipeline
     validation_dir = args.validation_dir or os.path.join(output_dir, "validation")
     validator = ValidationPipeline(validation_dir)
+    semantic_validator = SemanticPreservationValidator()
 
     print(f"Starting pre-processing of files in {args.input_dir}...")
 
