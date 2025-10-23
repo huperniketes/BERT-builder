@@ -19,10 +19,8 @@ def process_file(file_path):
             content = content.replace('\x00', '')
             cleaned_text = remove_comments(content)
 
-            # Character Range Check: Log warning for non-ASCII characters
-            non_ascii_chars = [char for char in cleaned_text if ord(char) > 127]
-            if non_ascii_chars:
-                print(f"Warning: Non-ASCII characters found in {file_path}. Examples: {set(non_ascii_chars)}")
+            # Normalize UTF-8 encoding while preserving foreign language text in strings
+            cleaned_text = cleaned_text.encode('utf-8', errors='replace').decode('utf-8')
 
             return cleaned_text
     except Exception as e:
