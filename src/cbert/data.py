@@ -173,6 +173,9 @@ def main():
     repos = [d for d in os.listdir(args.input_dir) if os.path.isdir(os.path.join(args.input_dir, d))]
     total_repos = len(repos)
     
+    line_offsets = []
+    current_offset = 0
+    
     with open(args.output_file, 'w', encoding='utf-8') as outfile:
         for repo_idx, repo_name in enumerate(sorted(repos)):
             repo_path = os.path.join(args.input_dir, repo_name)
@@ -186,10 +189,19 @@ def main():
 
                 cleaned_text = process_file(file_path)
                 if cleaned_text.strip(): # Only write if there's actual content
-                    outfile.write(cleaned_text)
-                    outfile.write('\n') # Add a newline between files
+                    line_offsets.append(current_offset)
+                    line_content = cleaned_text + '\n'
+                    outfile.write(line_content)
+                    current_offset += len(line_content.encode('utf-8'))
 
     print(f"\nPre-processing complete. Cleaned corpus saved to {args.output_file}")
+    
+    # Save line offsets if requested
+    lineoffsets_file = args.output_file.replace('.txt', '_lineoffsets.json')
+    import json
+    with open(lineoffsets_file, 'w') as f:
+        json.dump({'line_offsets': line_offsets}, f)
+    print(f"Line offsets saved to {lineoffsets_file}")
     
     # Validate preprocessing results
     validation_result = validator.validate_data_preprocessing(args.input_dir, args.output_file)

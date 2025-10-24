@@ -217,7 +217,11 @@ def run(args):
 
 
     # 4. Create Dataset and DataLoader
-    dataset_lineoffsets_file = os.path.join(args.output_dir, 'dataset_lineoffsets.json')
+    # Try to use lineoffsets file from data preprocessing first
+    dataset_lineoffsets_file = args.dataset_dir.replace('.txt', '_lineoffsets.json')
+    if not os.path.exists(dataset_lineoffsets_file):
+        # Fallback to generating in output dir
+        dataset_lineoffsets_file = os.path.join(args.output_dir, 'dataset_lineoffsets.json')
     dataset = TextDataset(args.dataset_dir, tokenizer, config.max_position_embeddings, args.masking, dataset_lineoffsets_file)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     
