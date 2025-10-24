@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class TextDataset(Dataset):
-    def __init__(self, file_path: str, tokenizer: PreTrainedTokenizer, max_length: int, masking_strategy: str = 'mlm'):
+    def __init__(self, file_path: str, tokenizer: PreTrainedTokenizer, max_length: int, masking_strategy: str = 'mlm', dataset_lineoffsets_file: str = None):
         self.file_path = file_path
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -26,36 +26,52 @@ class TextDataset(Dataset):
         # For WWM, we need to identify whole words. This is a simple regex for C-like identifiers.
         self.word_regex = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)')
 
-        self.line_offsets = []
-        current_offset = 0
-        num_meaningful_lines = 0
+        # Try to load existing dataset lineoffsets
+        if dataset_lineoffsets_file and os.path.exists(dataset_lineoffsets_file):
+            logger.info(f"Loading dataset lineoffsets from {dataset_lineoffsets_file}")
+            with open(dataset_lineoffsets_file, 'r') as f:
+                state = json.load(f)
+                self.line_offsets = state['line_offsets']
+        else:
+            # Build line offsets from scratch
+            self.line_offsets = []
+            current_offset = 0
+            num_meaningful_lines = 0
 
-        # Open the file once and keep it open
-        self.file = open(file_path, 'r', encoding='utf-8')
+            # Open the file once and keep it open
+            temp_file = open(file_path, 'r', encoding='utf-8')
 
-        # Reset file pointer to the beginning before iterating
-        self.file.seek(0)
-        for line_num, line in enumerate(self.file):
-            stripped_line = line.strip()
-            if not stripped_line: # Skip empty lines
+            # Reset file pointer to the beginning before iterating
+            temp_file.seek(0)
+            for line_num, line in enumerate(temp_file):
+                stripped_line = line.strip()
+                if not stripped_line: # Skip empty lines
+                    current_offset += len(line.encode('utf-8'))
+                    continue
+                
+                encoded_content = self.tokenizer.encode(stripped_line, add_special_tokens=False, max_length=self.max_length, truncation=True)
+                if encoded_content:
+                    unk_token_id = self.tokenizer.unk_token_id
+                    if unk_token_id is not None:
+                        unk_count = encoded_content.count(unk_token_id)
+                        if len(encoded_content) > 0:
+                            unk_ratio = unk_count / len(encoded_content)
+                            if unk_ratio > 0.5:
+                                logger.warning(f"High UNK token ratio ({unk_ratio:.2f}) in line {line_num} of {file_path}: '{stripped_line[:100]}...'")
+
+                    self.line_offsets.append(current_offset)
+                    num_meaningful_lines += 1
                 current_offset += len(line.encode('utf-8'))
-                continue
             
-            encoded_content = self.tokenizer.encode(stripped_line, add_special_tokens=False, max_length=self.max_length, truncation=True)
-            if encoded_content:
-                unk_token_id = self.tokenizer.unk_token_id
-                if unk_token_id is not None:
-                    unk_count = encoded_content.count(unk_token_id)
-                    if len(encoded_content) > 0:
-                        unk_ratio = unk_count / len(encoded_content)
-                        if unk_ratio > 0.5:
-                            logger.warning(f"High UNK token ratio ({unk_ratio:.2f}) in line {line_num} of {file_path}: '{stripped_line[:100]}...'")
-
-                self.line_offsets.append(current_offset)
-                num_meaningful_lines += 1
-            current_offset += len(line.encode('utf-8'))
-
-        logger.info(f"Loaded {num_meaningful_lines} meaningful lines from {file_path}")
+            temp_file.close()
+            logger.info(f"Loaded {num_meaningful_lines} meaningful lines from {file_path}")
+            
+            # Save dataset lineoffsets if requested
+            if dataset_lineoffsets_file:
+                self.save_lineoffsets(dataset_lineoffsets_file)
+        
+        # Open the file for reading during training
+        self.file = open(file_path, 'r', encoding='utf-8')
 
     def __del__(self):
         if hasattr(self, 'file') and self.file:
@@ -151,6 +167,12 @@ class TextDataset(Dataset):
         inputs[indices_random] = random_words[indices_random]
 
         return inputs, labels
+    
+    def save_lineoffsets(self, lineoffsets_file: str):
+        """Save dataset lineoffsets to avoid re-initialization."""
+        state = {'line_offsets': self.line_offsets}
+        with open(lineoffsets_file, 'w') as f:
+            json.dump(state, f)
 
 
 def get_tokenizer(tokenizer_name: str, vocab_file: str = None, spm_model_file: str = None) -> PreTrainedTokenizer:
@@ -195,7 +217,8 @@ def run(args):
 
 
     # 4. Create Dataset and DataLoader
-    dataset = TextDataset(args.dataset_dir, tokenizer, config.max_position_embeddings, args.masking)
+    dataset_lineoffsets_file = os.path.join(args.output_dir, 'dataset_lineoffsets.json')
+    dataset = TextDataset(args.dataset_dir, tokenizer, config.max_position_embeddings, args.masking, dataset_lineoffsets_file)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     
     # Validate tokenization with sample data
