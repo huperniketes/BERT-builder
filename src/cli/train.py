@@ -39,6 +39,14 @@ def main():
     if args.spm_model_file and not os.path.exists(args.spm_model_file):
         print(f"Error: SentencePiece model file does not exist: {args.spm_model_file}")
         sys.exit(1)
+    if args.resume_from_checkpoint:
+        checkpoint_file = os.path.join(args.resume_from_checkpoint, 'training_state.bin')
+        if not os.path.exists(checkpoint_file):
+            print(f"Error: Checkpoint file does not exist: {checkpoint_file}")
+            sys.exit(1)
+        if not os.access(checkpoint_file, os.R_OK):
+            print(f"Error: Cannot read checkpoint file: {checkpoint_file}")
+            sys.exit(1)
 
     # Validate numeric arguments
     if args.epochs <= 0:

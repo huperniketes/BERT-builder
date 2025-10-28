@@ -246,8 +246,14 @@ def run(args):
     # 6. Resumption
     start_step = 0
     if args.resume_from_checkpoint:
+        checkpoint_file = os.path.join(args.resume_from_checkpoint, 'training_state.bin')
+        if not os.path.exists(checkpoint_file):
+            raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_file}")
+        if not os.access(checkpoint_file, os.R_OK):
+            raise PermissionError(f"Cannot read checkpoint file: {checkpoint_file}")
+        
         logger.info(f"Resuming from checkpoint: {args.resume_from_checkpoint}")
-        checkpoint = torch.load(os.path.join(args.resume_from_checkpoint, 'training_state.bin'))
+        checkpoint = torch.load(checkpoint_file)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_step = checkpoint['step'] + 1
