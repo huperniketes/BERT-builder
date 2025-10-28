@@ -25,6 +25,22 @@ def calculate_accuracy_mlm(logits, labels):
 def calculate_perplexity(loss):
     return torch.exp(loss).item()
 
+def load_checkpoint(checkpoint_file):
+    if os.path.exists(checkpoint_file):
+        with open(checkpoint_file, 'r') as f:
+            return json.load(f)
+    return None
+
+def save_checkpoint(checkpoint_file, batch_idx, total_loss, total_accuracy, num_batches):
+    checkpoint = {
+        "batch_idx": batch_idx,
+        "total_loss": total_loss,
+        "total_accuracy": total_accuracy,
+        "num_batches": num_batches
+    }
+    with open(checkpoint_file, 'w') as f:
+        json.dump(checkpoint, f)
+
 # --- Evaluation Dataset Classes ---
 class BaseEvaluationDataset(Dataset):
     def __init__(self, file_path: str, tokenizer, max_length: int):
@@ -110,6 +126,7 @@ def main():
     parser.add_argument("--tokenizer-type", type=str, required=True, choices=['char', 'keychar', 'spe'], help="Type of tokenizer used during training.")
     parser.add_argument("--vocab-file", type=str, default=None, help="Path to the vocabulary file (required for SentencePiece tokenizer). If not provided, attempts to load from model-dir.")
     parser.add_argument("--spm-model-file", type=str, default=None, help="Path to the SentencePiece model file (required for SentencePiece tokenizer). If not provided, attempts to load from model-dir.")
+    parser.add_argument("--checkpoint-file", type=str, default=None, help="Path to checkpoint file for resuming evaluation. If not provided, creates one based on output-file.")
 
     args = parser.parse_args()
 
@@ -180,13 +197,33 @@ def main():
     eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False) # No shuffling for evaluation
     logger.info(f"Evaluation dataset loaded with {len(eval_dataset)} samples.")
 
-    total_loss = 0
-    total_accuracy = 0
-    num_batches = 0
+    # Setup checkpoint file
+    checkpoint_file = args.checkpoint_file
+    if not checkpoint_file and args.output_file:
+        checkpoint_file = args.output_file.replace('.json', '_checkpoint.json')
+    elif not checkpoint_file:
+        checkpoint_file = 'evaluation_checkpoint.json'
+
+    # Load checkpoint if exists
+    checkpoint = load_checkpoint(checkpoint_file)
+    if checkpoint:
+        start_batch = checkpoint["batch_idx"] + 1
+        total_loss = checkpoint["total_loss"]
+        total_accuracy = checkpoint["total_accuracy"]
+        num_batches = checkpoint["num_batches"]
+        logger.info(f"Resuming from batch {start_batch} (processed {num_batches} batches)")
+    else:
+        start_batch = 0
+        total_loss = 0
+        total_accuracy = 0
+        num_batches = 0
+        logger.info("Starting evaluation from beginning")
 
     # 5. Perform Evaluation
     with torch.no_grad():
-        for batch in eval_dataloader:
+        for batch_idx, batch in enumerate(eval_dataloader):
+            if batch_idx < start_batch:
+                continue
             input_ids = batch["input_ids"].to(device)
             labels = batch["labels"].to(device)
 
@@ -209,6 +246,10 @@ def main():
                 total_accuracy += 0.0 # Dummy accuracy
 
             num_batches += 1
+            
+            # Save checkpoint every 10 batches
+            if batch_idx % 10 == 0:
+                save_checkpoint(checkpoint_file, batch_idx, total_loss, total_accuracy, num_batches)
 
     avg_loss = total_loss / num_batches if num_batches > 0 else 0
     avg_accuracy = total_accuracy / num_batches if num_batches > 0 else 0
@@ -234,6 +275,11 @@ def main():
         logger.info(f"Evaluation results saved to {args.output_file}")
     else:
         print(json.dumps(results, indent=2))
+    
+    # Clean up checkpoint file on successful completion
+    if os.path.exists(checkpoint_file):
+        os.remove(checkpoint_file)
+        logger.info("Checkpoint file removed after successful completion")
 
 if __name__ == "__main__":
     main()
