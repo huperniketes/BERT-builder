@@ -48,7 +48,19 @@ class BaseEvaluationDataset(Dataset):
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.line_offsets = []
-        self._build_line_offsets()
+        self._load_line_offsets()
+
+    def _load_line_offsets(self):
+        # Try to load pre-computed offsets first
+        offsets_file = self.file_path.replace('.txt', '_lineoffsets.json')
+        if os.path.exists(offsets_file):
+            with open(offsets_file, 'r') as f:
+                data = json.load(f)
+                self.line_offsets = data['line_offsets']
+            logger.info(f"Loaded {len(self.line_offsets)} pre-computed line offsets from {offsets_file}")
+        else:
+            # Fallback to building offsets (original behavior)
+            self._build_line_offsets()
 
     def _build_line_offsets(self):
         current_offset = 0
@@ -64,7 +76,7 @@ class BaseEvaluationDataset(Dataset):
                 if encoded_content: # If there are any actual content tokens
                     self.line_offsets.append(current_offset)
                 current_offset += len(line.encode('utf-8'))
-        logger.info(f"Loaded {len(self.line_offsets)} meaningful lines from {self.file_path}")
+        logger.info(f"Built {len(self.line_offsets)} line offsets from {self.file_path}")
 
     def __len__(self):
         return len(self.line_offsets)
@@ -127,6 +139,7 @@ def main():
     parser.add_argument("--vocab-file", type=str, default=None, help="Path to the vocabulary file (required for SentencePiece tokenizer). If not provided, attempts to load from model-dir.")
     parser.add_argument("--spm-model-file", type=str, default=None, help="Path to the SentencePiece model file (required for SentencePiece tokenizer). If not provided, attempts to load from model-dir.")
     parser.add_argument("--checkpoint-file", type=str, default=None, help="Path to checkpoint file for resuming evaluation. If not provided, creates one based on output-file.")
+    parser.add_argument("--use-precomputed-offsets", action="store_true", help="Use pre-computed line offsets from data preprocessing (faster startup).")
 
     args = parser.parse_args()
 
