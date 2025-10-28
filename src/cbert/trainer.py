@@ -300,7 +300,7 @@ def run(args):
                 logger.error(f"Training batch validation failed at step {global_step}")
 
             # Checkpointing
-            if global_step > 0 and global_step % 1 == 0: # Checkpoint every step
+            if global_step > 0 and global_step % 500 == 0: # Checkpoint every 500 steps
                 checkpoint_dir = os.path.join(args.output_dir, f"checkpoint-{global_step}")
                 os.makedirs(checkpoint_dir, exist_ok=True)
                 logger.info(f"Saving checkpoint to {checkpoint_dir}")
