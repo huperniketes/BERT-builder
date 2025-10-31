@@ -233,6 +233,7 @@ def main():
         logger.info("Starting evaluation from beginning")
 
     # 5. Perform Evaluation
+    total_batches = len(eval_dataloader)
     with torch.no_grad():
         for batch_idx, batch in enumerate(eval_dataloader):
             if batch_idx < start_batch:
@@ -260,9 +261,17 @@ def main():
 
             num_batches += 1
             
+            # Progress indicator
+            progress = (batch_idx + 1) / total_batches * 100
+            avg_loss_current = total_loss / num_batches
+            avg_acc_current = total_accuracy / num_batches
+            print(f"\rProgress: {batch_idx + 1}/{total_batches} ({progress:.1f}%) | Loss: {avg_loss_current:.4f} | Acc: {avg_acc_current:.4f}", end="", flush=True)
+            
             # Save checkpoint every 10 batches
             if batch_idx % 10 == 0:
                 save_checkpoint(checkpoint_file, batch_idx, total_loss, total_accuracy, num_batches)
+    
+    print()  # New line after progress indicator
 
     avg_loss = total_loss / num_batches if num_batches > 0 else 0
     avg_accuracy = total_accuracy / num_batches if num_batches > 0 else 0
@@ -276,6 +285,7 @@ def main():
         "average_perplexity": avg_perplexity,
         "num_samples": len(eval_dataset)
     }
+    print(f"\nEvaluation completed!")
     logger.info(f"Evaluation Results: {results}")
 
     # 7. Save Results
