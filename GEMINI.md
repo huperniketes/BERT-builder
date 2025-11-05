@@ -27,8 +27,8 @@ This project is focused on research-grade implementations for academic publicati
 - **Configurability:** Avoid hardcoded values. All hyperparameters should be configurable through command-line arguments or configuration files.
 - **Scope:** Focus solely on the core research contributions. Do not add features or optimizations not explicitly mentioned in the source paper unless directed to do so.
 - **Validation:** Include tests to validate *all* input data, parameters, intermediate results and data shapes. Unexpected values shall be flagged with the rationale, the source, and location for inspection of the values for corrective measures to be undertaken. Errors and exceptions during processing shall likewise be reported.
+- **Data Quality:** Implement comprehensive data quality checks throughout the pipeline. This includes validation of data integrity, consistency, completeness, and adherence to expected formats. All data transformations must preserve semantic meaning while maintaining traceability of quality metrics.
 - **Documentation:** Ensure the code is well-documented, especially the parts related to the core algorithm and data transformations.
-add data quality to the context
 
 
 <!-- MANUAL ADDITIONS START -->
