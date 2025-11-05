@@ -19,3 +19,8 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+
+# SpecKit
+.specify/memory/agent-context.md
+.specify/cache/
+*.speckit.tmp
