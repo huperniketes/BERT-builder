@@ -11,6 +11,7 @@ import ast
 import re
 from collections import defaultdict, Counter
 
+from cbert.c_ast_evaluator import CASTEvaluator, is_c_available
 from cbert.trainer import TextDataset, get_tokenizer # Re-use TextDataset and get_tokenizer
 from cbert.model import create_cbert_model # Import create_cbert_model
 import logging
@@ -178,23 +179,41 @@ class MLMEvaluationDataset(BaseEvaluationDataset):
         return {"input_ids": input_ids, "labels": labels}
 
 class ASTEvaluationDataset(BaseEvaluationDataset):
-    def __init__(self, file_path: str, tokenizer, max_length: int):
+    def __init__(self, file_path: str, tokenizer, max_length: int, language: str = 'c'):
         super().__init__(file_path, tokenizer, max_length)
-        self.ast_label_map = {
-            'FunctionDef': 0, 'ClassDef': 1, 'Name': 2, 'Constant': 3, 'Attribute': 4,
-            'Call': 5, 'BinOp': 6, 'UnaryOp': 7, 'Compare': 8, 'If': 9, 'For': 10,
-            'While': 11, 'Return': 12, 'Assign': 13, 'AugAssign': 14, 'AnnAssign': 15,
-            'Import': 16, 'ImportFrom': 17, 'Try': 18, 'Except': 19, 'With': 20,
-            'List': 21, 'Dict': 22, 'Tuple': 23, 'Set': 24, 'Lambda': 25,
-            'Comprehension': 26, 'GeneratorExp': 27, 'ListComp': 28, 'DictComp': 29,
-            'SetComp': 30, 'Expr': 31, 'Pass': 32, 'Break': 33, 'Continue': 34,
-            'Global': 35, 'Nonlocal': 36, 'Assert': 37, 'Delete': 38, 'Raise': 39,
-            'Yield': 40, 'YieldFrom': 41, 'AsyncFunctionDef': 42, 'AsyncFor': 43,
-            'AsyncWith': 44, 'Await': 45, 'OTHER': 46
-        }
-        self.reverse_label_map = {v: k for k, v in self.ast_label_map.items()}
+        self.language = language.lower()
         
+        if self.language == 'c' and is_c_available():
+            self.c_evaluator = CASTEvaluator()
+            self.ast_label_map = self.c_evaluator.get_label_map()
+        else:
+            # Use Python AST evaluation (existing implementation)
+            self.c_evaluator = None
+            self.ast_label_map = {
+                'FunctionDef': 0, 'ClassDef': 1, 'Name': 2, 'Constant': 3, 'Attribute': 4,
+                'Call': 5, 'BinOp': 6, 'UnaryOp': 7, 'Compare': 8, 'If': 9, 'For': 10,
+                'While': 11, 'Return': 12, 'Assign': 13, 'AugAssign': 14, 'AnnAssign': 15,
+                'Import': 16, 'ImportFrom': 17, 'Try': 18, 'Except': 19, 'With': 20,
+                'List': 21, 'Dict': 22, 'Tuple': 23, 'Set': 24, 'Lambda': 25,
+                'Comprehension': 26, 'GeneratorExp': 27, 'ListComp': 28, 'DictComp': 29,
+                'SetComp': 30, 'Expr': 31, 'Pass': 32, 'Break': 33, 'Continue': 34,
+                'Global': 35, 'Nonlocal': 36, 'Assert': 37, 'Delete': 38, 'Raise': 39,
+                'Yield': 40, 'YieldFrom': 41, 'AsyncFunctionDef': 42, 'AsyncFor': 43,
+                'AsyncWith': 44, 'Await': 45, 'OTHER': 46
+            }
+        
+        self.reverse_label_map = {v: k for k, v in self.ast_label_map.items()}
+    
     def _parse_ast_labels(self, code_line):
+        """Parse AST and generate token-level labels"""
+        if self.language == 'c' and self.c_evaluator:
+            return self.c_evaluator.get_ast_labels(code_line)
+        else:
+            # Use existing Python AST parsing logic
+            return self._parse_python_ast_labels(code_line)
+    
+    def _parse_python_ast_labels(self, code_line):
+        """Original Python AST parsing logic"""
         """Parse AST and generate token-level labels"""
         try:
             # Parse the code into an AST
@@ -580,6 +599,7 @@ def main():
     parser.add_argument("--spm-model-file", type=str, default=None, help="Path to the SentencePiece model file (required for SentencePiece tokenizer). If not provided, attempts to load from model-dir.")
     parser.add_argument("--checkpoint-file", type=str, default=None, help="Path to checkpoint file for resuming evaluation. If not provided, creates one based on output-file.")
     parser.add_argument("--use-precomputed-offsets", action="store_true", help="Use pre-computed line offsets from data preprocessing (faster startup).")
+    parser.add_argument("--language", type=str, default='c', choices=['c', 'python'], help="Programming language for AST evaluation")
 
     args = parser.parse_args()
 
@@ -641,7 +661,7 @@ def main():
     if args.task == 'mlm':
         eval_dataset = MLMEvaluationDataset(args.dataset_dir, tokenizer, args.max_length)
     elif args.task == 'ast':
-        eval_dataset = ASTEvaluationDataset(args.dataset_dir, tokenizer, args.max_length)
+        eval_dataset = ASTEvaluationDataset(args.dataset_dir, tokenizer, args.max_length, language=args.language)
     elif args.task == 'vi':
         eval_dataset = VIEvaluationDataset(args.dataset_dir, tokenizer, args.max_length)
     else:
