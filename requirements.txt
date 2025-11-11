@@ -5,4 +5,5 @@ clang
 requests
 numpy<2.0
 pytest
+ruff
 antlr4-python3-runtime==4.13.2
